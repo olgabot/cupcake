@@ -35,21 +35,22 @@ clean-test:
 	rm -fr htmlcov/
 
 lint:
-	pyflakes mlviz
+	pyflakes cupcake
 
 test:
-	py.test mlviz
+	py.test cupcake
 
 pep8:
-	pep8 mlviz
+	pep8 cupcake
 
 coverage:
-	py.test --durations=20 --cov mlviz --cov-report term-missing mlviz/tests/
+	coverage run --source cupcake --omit="*/test*" --module py.test
+	coverage report --show-missing
 
 docs:
-	rm -f docs/mlviz.rst
+	rm -f docs/cupcake.rst
 	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ mlviz
+	sphinx-apidoc -o docs/ cupcake
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 	open docs/_build/html/index.html
