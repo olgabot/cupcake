@@ -24,13 +24,14 @@ import seaborn as sns
 
 
 class _ReducedPlotter(object):
-    """Generic object for plotting reduced representations of high-dimensional data on 2d space"""
+    """Generic object for plotting high-dimensional data on 2d space"""
 
     def establish_reducer(self, reducer, n_components, smusher_kws):
         smusher_kws.setdefault('n_components', n_components)
 
         if reducer is None:
-            # Create a brand new dimensionality reducer (matrix decomposer/manifold learner)
+            # Create a brand new dimensionality reducer
+            # (matrix decomposer/manifold learner)
             self.reducer = reducer(**smusher_kws)
         else:
             # We're using a pre-existing, user-supplied reducer
@@ -116,7 +117,7 @@ class _ReducedPlotter(object):
         if saturation < 1:
             colors = sns.color_palette(colors, desat=saturation)
 
-        # Conver the colors to a common representations
+        # Convert the colors to a common representations
         rgb_colors = sns.color_palette(colors)
 
         # Determine the gray color to use for the lines framing the plot
@@ -128,46 +129,92 @@ class _ReducedPlotter(object):
         self.colors = rgb_colors
         self.gray = gray
 
-    def establish_symbols(self, marker, marker_order, text, text_order):
-        """Figure out what to place on the axes for each data point"""
+
+    def _maybe_make_grouper(self, attribute, attribute_order, dtype):
+        if isinstance(attribute, dtype):
+            # Use this single attribute for everything
+            return pd.Series([attribute]*self.high_dimensional_data.shape[0],
+                             index=self.high_dimensional_data.index)
+        else:
+            attribute_order = sns.utils.categorical_order(attribute,
+                                                          attribute_order)
+            return pd.Categorical(attribute, categories=attribute_order,
+                                  ordered=True)
+
+    def establish_symbols(self, marker, marker_order, text, text_order,
+                          linewidth, linewidth_order, edgecolor,
+                          edgecolor_order):
+        """Figure out what to put on the axes for each sample in the data"""
         if isinstance(text, bool):
             self.text = text
 
             if self.text:
                 # Use the sample names of data as the plotting symbol
-                symbol = sns.utils.categorical_order(
-                    self.high_dimensional_data.index)
+                symbol = pd.Series(
+                    map(str, self.high_dimensional_data.index))
             else:
-                symbol = sns.utils.categorical_order(marker, marker_order)
+                symbol = self._maybe_make_grouper(marker, marker_order, str)
+
         else:
             # Assume "text" is a mapping from row names (sample ids) of the
             # data to text labels
+            # if marker is None:
+            text_order = sns.utils.categorical_order(text, text_order)
+            symbol = pd.Categorical(text, text_order)
             if marker is not None:
-                symbol = sns.utils.categorical_order(text, text_order)
-            else:
-                error = 'Cannot specify both "marker" and "text'
-                raise ValueError(error)
+                warnings.warn('Overriding plotting symbol from "marker" with '
+                              'values in "text"')
+            # else:
+            #     error = 'Cannot specify both "marker" and "text'
+            #     raise ValueError(error)
 
             # Turn text into a boolean
             text = True
 
         self.symbol = symbol
+
+        # Set these even if text=True because they won't be used when plotting
+        # the text anyways
+        self.linewidth = self._maybe_make_grouper(linewidth, linewidth_order,
+                                                  (int, float))
+        self.edgecolor = self._maybe_make_grouper(edgecolor, edgecolor_order,
+                                                  str)
         self.text = text
 
+    def symbolplotter(self, xs, ys, symbol, linewidth, edgecolor, **kwargs):
+        """Plots either a matplotlib marker or a string at each data position
 
-    def markerplotter(self, xs, ys, symbol, text, **kwargs):
+        Wraps plt.text and plt.plot
+
+        Parameters
+        ----------
+        xs : array-like
+            List of x positions for data
+        ys : array-like
+            List of y-positions for data
+        symbol : str
+            What to plot at each (x, y) data position
+        text : bool
+            If true, then "symboL" is assumed to be a string and iterates over
+            each data point individually, using plt.text to position the text.
+            Otherwise, "symbol" is a matplotlib marker and uses plt.plot for
+            plotting
+        kwargs
+            Any other keyword arguments to plt.text or plt.plot
+        """
         # If both the x- and y- positions don't have data, don't do anything
         if xs.empty and ys.empty:
             return
 
-        if text:
+        if self.text:
             # Plot each (x, y) position as text
             for x, y in zip(xs, ys):
                 plt.text(x, y, symbol, **kwargs)
         else:
             # use plt.plot instead of plt.scatter for speed, since plotting all
             # the same marker shape and color and linestyle
-            plt.plot(xs, ys, 'o', marker=symbol, **kwargs)
+            plt.plot(xs, ys, 'o', marker=symbol, linewidth=linewidth,
+                     edgecolor=edgecolor, **kwargs)
 
     def annotate_axes(self, ax):
         """Add descriptive labels to an Axes object."""
@@ -218,15 +265,19 @@ class _ReducedPlotter(object):
                              label=label)
         ax.add_patch(rect)
 
-    def draw_markers(self, ax, text, x=0, y=1):
-        if isinstance(text, bool):
-            if text:
-                # Label each point with its sample id (row id)
-                pass
+    def draw_markers(self, ax, x=0, y=1, **kwargs):
+        """Plot each sample in the data in the reduced space"""
+
+        # Iterate over all the possible modifications of the points
         for hue, hue_df in self.reduced_data.groupby(self.hue):
             for symbol, symbol_df in hue_df.groupby(self.symbol):
-                self.markerplotter(symbol_df[:, x], symbol_df[:, y], text=text,
-                                   symbol=symbol, color=hue, ax=ax)
+                for lw, lw_df in symbol_df.groupby(self.linewidth):
+                    for ec, ec_df in lw_df.groupby(self.edgecolor):
+                        # and finally ... actually plot the data!
+                        self.symbolplotter(ec_df[:, x], ec_df[:, y],
+                                           symbol=symbol, color=hue,
+                                           ax=ax, linewidth=lw, edgecolor=ec,
+                                           **kwargs)
 
     def draw_images(self, ax, images):
         if hasattr(offsetbox, 'AnnotationBbox'):
