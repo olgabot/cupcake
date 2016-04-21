@@ -51,23 +51,20 @@ class _ReducedPlotter(object):
         # The input data is an array or list
         # ----------------------------------
         else:
-                if len(data.shape) == 2:
-                    nr, nc = data.shape
-                    if nr == 1 or nc == 1:
-                        error = ("Input `data` must have "
-                                 "exactly 2 dimensions, where both "
-                                 "have at least 2 components")
-                        raise ValueError(error)
-                    else:
-                        high_dimensional_data = pd.DataFrame(data)
-                else:
+            if len(data.shape) == 2:
+                nr, nc = data.shape
+                if nr == 1 or nc == 1:
                     error = ("Input `data` must have "
-                             "exactly 2 dimensions")
+                             "exactly 2 dimensions, where both "
+                             "have at least 2 components")
                     raise ValueError(error)
+                else:
+                    high_dimensional_data = pd.DataFrame(data)
+            else:
+                error = ("Input `data` must have "
+                         "exactly 2 dimensions")
+                raise ValueError(error)
 
-            # Check if `data` is None to let us bail out here (for testing)
-            elif data is None:
-                high_dimensional_data = pd.DataFrame([[]])
             group_label = None
             value_label = None
 
