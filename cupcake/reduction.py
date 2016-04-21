@@ -1,3 +1,7 @@
+"""
+Internal abstract base class for all dimensionality reduction plots.
+Not intended to be user-facing.
+"""
 from __future__ import division
 from textwrap import dedent
 import colorsys
@@ -47,8 +51,6 @@ class _ReducedPlotter(object):
         # The input data is an array or list
         # ----------------------------------
         else:
-            # The input data is an array
-            if hasattr(data, "shape"):
                 if len(data.shape) == 2:
                     nr, nc = data.shape
                     if nr == 1 or nc == 1:
@@ -63,7 +65,6 @@ class _ReducedPlotter(object):
                              "exactly 2 dimensions")
                     raise ValueError(error)
 
-
             # Check if `data` is None to let us bail out here (for testing)
             elif data is None:
                 high_dimensional_data = pd.DataFrame([[]])
@@ -76,7 +77,7 @@ class _ReducedPlotter(object):
         self.group_label = group_label
         self.value_label = value_label
 
-    def establish_colors(self, color, palette, saturation, marker, marker_order, text, text_order, plot_kws):
+    def establish_colors(self, color, palette, saturation):
         """Get a list of colors for the main component of the plots."""
         if self.hue_names is None:
             n_colors = len(self.reduced_data.index)
@@ -129,27 +130,47 @@ class _ReducedPlotter(object):
         # Assign object attributes
         self.colors = rgb_colors
         self.gray = gray
-    #
-    # def establish_markers(self, marker=None, marker_order=None,
-    #                       text=None, text_order=None, plot_kws=None):
-    #     if text is None:
-    #         # Use matplotlib's plotting function to plot each sample
-    #         markerplotter = plt.plot
-    #     else:
-    #         if marker is not None:
-    #             raise ValueError('Only one of "marker" or "text" can be '
-    #                              'specified')
-    #
-    #         # Plot each sample "point" as text instead of a plotting symbol
-    #         markerplotter = plt.text
-    #     self.markerplotter = markerplotter
 
-    def markerplotter(self, xs, ys, marker, text, **kwargs):
-        if text:
-            for x, y in zip(xs, ys):
-                plt.text(x, y, marker, **kwargs)
+    def establish_symbols(self, marker, marker_order, text, text_order):
+        """Figure out what to place on the axes for each data point"""
+        if isinstance(text, bool):
+            self.text = text
+
+            if self.text:
+                # Use the sample names of data as the plotting symbol
+                symbol = sns.utils.categorical_order(
+                    self.high_dimensional_data.index)
+            else:
+                symbol = sns.utils.categorical_order(marker, marker_order)
         else:
-            plt.plot(xs, ys, marker, **kwargs)
+            # Assume "text" is a mapping from row names (sample ids) of the
+            # data to text labels
+            if marker is not None:
+                symbol = sns.utils.categorical_order(text, text_order)
+            else:
+                error = 'Cannot specify both "marker" and "text'
+                raise ValueError(error)
+
+            # Turn text into a boolean
+            text = True
+
+        self.symbol = symbol
+        self.text = text
+
+
+    def markerplotter(self, xs, ys, symbol, text, **kwargs):
+        # If both the x- and y- positions don't have data, don't do anything
+        if xs.empty and ys.empty:
+            return
+
+        if text:
+            # Plot each (x, y) position as text
+            for x, y in zip(xs, ys):
+                plt.text(x, y, symbol, **kwargs)
+        else:
+            # use plt.plot instead of plt.scatter for speed, since plotting all
+            # the same marker shape and color and linestyle
+            plt.plot(xs, ys, 'o', marker=symbol, **kwargs)
 
     def annotate_axes(self, ax):
         """Add descriptive labels to an Axes object."""
@@ -206,9 +227,9 @@ class _ReducedPlotter(object):
                 # Label each point with its sample id (row id)
                 pass
         for hue, hue_df in self.reduced_data.groupby(self.hue):
-            for marker, marker_df in hue_df.groupby(self.marker):
-                self.markerplotter(marker_df[:, x], marker_df[:, y], text=text,
-                                   marker=marker, color=hue, ax=ax)
+            for symbol, symbol_df in hue_df.groupby(self.symbol):
+                self.markerplotter(symbol_df[:, x], symbol_df[:, y], text=text,
+                                   symbol=symbol, color=hue, ax=ax)
 
     def draw_images(self, ax, images):
         if hasattr(offsetbox, 'AnnotationBbox'):
