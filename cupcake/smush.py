@@ -1,8 +1,11 @@
 """
-User-facing interface to all dimensionality reduction algorithms
+User-facing interface for plotting all dimensionality reduction algorithms
 """
 
-def smushplot(data, smusher):
+def smushplot(data, smusher, n_components=2, marker='o', marker_order=None,
+              text=False, text_order=None, linewidth=1, linewidth_order=None,
+              edgecolor='k', edgecolor_order=None, smusher_kws=None,
+              plot_kws=None):
     if isinstance(smusher, str):
         # Need to get appropriate smusher from sklearn given the string
         pass
