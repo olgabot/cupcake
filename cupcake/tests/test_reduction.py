@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as pdt
 import pytest
+from sklearn.decomposition import PCA
 
 
 class Test__ReducedPlotter(object):
@@ -15,6 +16,32 @@ class Test__ReducedPlotter(object):
     symbol_kws = dict(marker='o', marker_order=None, text=False,
                       text_order=None, linewidth=1, linewidth_order=None,
                       edgecolor='k', edgecolor_order=None)
+
+    def test_establish_reducer_make_new(self):
+        from cupcake.reduction import _ReducedPlotter
+
+        pca_kws = {}
+        n_components = 2
+        reducer = PCA(n_components=n_components, **pca_kws)
+
+        p = _ReducedPlotter()
+        p.establish_reducer(PCA, n_components, {})
+
+        assert isinstance(p.reducer, type(reducer))
+        pdt.assert_dict_equal(p.reducer.get_params(), reducer.get_params())
+
+    def test_establish_reducer_use_existing(self):
+        from cupcake.reduction import _ReducedPlotter
+
+        pca_kws = {}
+        n_components = 2
+        reducer = PCA(n_components=n_components, **pca_kws)
+
+        p = _ReducedPlotter()
+        p.establish_reducer(reducer)
+
+        assert isinstance(p.reducer, type(reducer))
+        pdt.assert_dict_equal(p.reducer.get_params(), reducer.get_params())
 
     def test_establish_variables(self):
         from cupcake.reduction import _ReducedPlotter
@@ -90,7 +117,7 @@ class Test__ReducedPlotter(object):
     def test_establish_symbols_text_series_not_str(self):
         from cupcake.reduction import _ReducedPlotter
 
-        half = half = int(self.nrow/2.)
+        half = int(self.nrow/2.)
         text = pd.Series(([1] * half) + ([2] * half)).map(str)
 
         symbol_kws = self.symbol_kws.copy()
@@ -105,5 +132,6 @@ class Test__ReducedPlotter(object):
         pdt.assert_categorical_equal(p.symbol, symbol)
         assert p.text
 
-
-
+    def test__maybe_make_grouper(self):
+        from cupcake.reduction import _ReducedPlotter
+        pass

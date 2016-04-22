@@ -26,14 +26,17 @@ import seaborn as sns
 class _ReducedPlotter(object):
     """Generic object for plotting high-dimensional data on 2d space"""
 
-    def establish_reducer(self, reducer, n_components, smusher_kws):
-        smusher_kws.setdefault('n_components', n_components)
+    def establish_reducer(self, reducer, n_components=None, smusher_kws=None):
 
-        if reducer is None:
+        try:
             # Create a brand new dimensionality reducer
             # (matrix decomposer/manifold learner)
+
+            smusher_kws = {} if smusher_kws is None else smusher_kws
+            smusher_kws.setdefault('n_components', n_components)
+
             self.reducer = reducer(**smusher_kws)
-        else:
+        except TypeError:
             # We're using a pre-existing, user-supplied reducer
             self.reducer = reducer
 
