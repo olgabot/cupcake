@@ -43,7 +43,7 @@ class Test__ReducedPlotter(object):
         assert isinstance(p.reducer, type(reducer))
         pdt.assert_dict_equal(p.reducer.get_params(), reducer.get_params())
 
-    def test_establish_variables(self):
+    def test_establish_variables_matrix(self):
         from cupcake.reduction import _ReducedPlotter
 
         p = _ReducedPlotter()
@@ -52,6 +52,21 @@ class Test__ReducedPlotter(object):
         assert isinstance(p.high_dimensional_data, pd.DataFrame)
         pdt.assert_frame_equal(p.high_dimensional_data,
                                pd.DataFrame(self.matrix))
+        assert p.group_label is None
+        assert p.value_label is None
+
+    def test_establish_variables_dataframe_named_axes(self):
+        from cupcake.reduction import _ReducedPlotter
+
+        p = _ReducedPlotter()
+        data = pd.DataFrame(self.matrix).copy()
+        data.index.name = 'Samples'
+        data.columns.name = 'Features'
+        p.establish_variables(data)
+
+        pdt.assert_frame_equal(p.high_dimensional_data, data)
+        assert p.group_label == 'Samples'
+        assert p.value_label == "Features"
 
     @pytest.mark.xfail(reason='High dimensional data provided is actually '
                               'small')
