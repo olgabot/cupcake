@@ -83,15 +83,15 @@ class Test__ReducedPlotter(object):
         p.establish_variables(self.matrix)
         p.establish_symbols(**symbol_kws)
 
-        pdt.assert_series_equal(p.symbol,
-                                pd.Categorical(text, ordered=True,
-                                               categories=['A', 'B']))
+        symbol = pd.Categorical(text, ordered=True, categories=['A', 'B'])
+        pdt.assert_categorical_equal(p.symbol, symbol)
         assert p.text
 
     def test_establish_symbols_text_series_not_str(self):
         from cupcake.reduction import _ReducedPlotter
 
-        text = pd.Series(([1] * self.nrow/2) + ([2] * self.nrow/2))
+        half = half = int(self.nrow/2.)
+        text = pd.Series(([1] * half) + ([2] * half)).map(str)
 
         symbol_kws = self.symbol_kws.copy()
         symbol_kws['text'] = text
@@ -100,9 +100,9 @@ class Test__ReducedPlotter(object):
         p.establish_variables(self.matrix)
         p.establish_symbols(**symbol_kws)
 
-        pdt.assert_series_equal(p.symbol,
-                                pd.Categorical(text.map(str), ordered=True,
-                                               categories=['1', '2']))
+        symbol = pd.Categorical(text, ordered=True,
+                                categories=['1', '2'])
+        pdt.assert_categorical_equal(p.symbol, symbol)
         assert p.text
 
 

@@ -146,27 +146,24 @@ class _ReducedPlotter(object):
                           edgecolor_order):
         """Figure out what to put on the axes for each sample in the data"""
         if isinstance(text, bool):
-            self.text = text
-
-            if self.text:
-                # Use the sample names of data as the plotting symbol
+            # Option 1: Text is a boolean
+            if text:
+                # 1a: text=True, so use the sample names of data as the
+                # plotting symbol
                 symbol = pd.Series(
                     map(str, self.high_dimensional_data.index))
             else:
+                # 1b: text=False, so use the specified marker for each sample
                 symbol = self._maybe_make_grouper(marker, marker_order, str)
 
         else:
             # Assume "text" is a mapping from row names (sample ids) of the
             # data to text labels
-            # if marker is None:
             text_order = sns.utils.categorical_order(text, text_order)
-            symbol = pd.Categorical(text, text_order)
+            symbol = pd.Categorical(text, categories=text_order, ordered=True)
             if marker is not None:
                 warnings.warn('Overriding plotting symbol from "marker" with '
                               'values in "text"')
-            # else:
-            #     error = 'Cannot specify both "marker" and "text'
-            #     raise ValueError(error)
 
             # Turn text into a boolean
             text = True
