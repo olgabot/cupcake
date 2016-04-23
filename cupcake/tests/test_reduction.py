@@ -4,6 +4,8 @@ import pandas as pd
 import pandas.util.testing as pdt
 import pytest
 from sklearn.decomposition import PCA
+import string
+
 
 
 class Test__ReducedPlotter(object):
@@ -12,6 +14,12 @@ class Test__ReducedPlotter(object):
 
     vector = np.random.negative_binomial(n=1000, p=0.2, size=nrow * ncol)
     matrix = vector.reshape(nrow, ncol)
+    data = pd.DataFrame(matrix, index=list(string.ascii_lowercase[:nrow]),
+                        columns=list(string.ascii_uppercase[:ncol]))
+
+    data = pd.DataFrame(matrix.copy())
+    data.index.name = 'Samples'
+    data.columns.name = 'Features'
 
     symbol_kws = dict(marker='o', marker_order=None, text=False,
                       text_order=None, linewidth=1, linewidth_order=None,
@@ -59,17 +67,13 @@ class Test__ReducedPlotter(object):
         from cupcake.reduction import _ReducedPlotter
 
         p = _ReducedPlotter()
-        data = pd.DataFrame(self.matrix).copy()
-        data.index.name = 'Samples'
-        data.columns.name = 'Features'
-        p.establish_variables(data)
+        p.establish_variables(self.data)
 
-        pdt.assert_frame_equal(p.high_dimensional_data, data)
+        pdt.assert_frame_equal(p.high_dimensional_data, self.data)
         assert p.group_label == 'Samples'
         assert p.value_label == "Features"
 
-    @pytest.mark.xfail(reason='High dimensional data provided is actually '
-                              'small')
+    @pytest.mark.xfail(reason='High dimensional data provided is too small')
     def test_establish_variables_too_few_axes(self):
         from cupcake.reduction import _ReducedPlotter
 
@@ -85,6 +89,32 @@ class Test__ReducedPlotter(object):
         p = _ReducedPlotter()
         matrix = self.vector.reshape((1, self.nrow, self.ncol))
         p.establish_variables(matrix)
+
+    def test__maybe_make_grouper_single_attribute(self):
+        from cupcake.reduction import _ReducedPlotter
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+
+        test_grouper = p._maybe_make_grouper('o', None, str)
+        true_grouper = pd.Series(['o']*self.matrix.shape[0],
+                                 index=self.data.index)
+        pdt.assert_series_equal(test_grouper, true_grouper)
+
+    def test__maybe_make_grouper_multiple_attributes(self):
+        from cupcake.reduction import _ReducedPlotter
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.matrix)
+
+        half = int(self.nrow/2.)
+        attribute = pd.Series((['B'] * half) + (['A'] * half))
+        order = ['A', 'B']
+
+        test_grouper = p._maybe_make_grouper(attribute, order, str)
+        true_grouper = pd.Categorical(attribute, categories=order,
+                                      ordered=True)
+        pdt.assert_categorical_equal(test_grouper, true_grouper)
 
     def test_establish_symbols_defaults(self):
         from cupcake.reduction import _ReducedPlotter
