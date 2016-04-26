@@ -1,4 +1,3 @@
-from textwrap import dedent
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -6,48 +5,6 @@ from sklearn.decomposition import PCA
 
 from cupcake.smush.base import _ReducedPlotter
 
-_reducer_docs = dict(
-    input_params=dedent("""
-    data : DataFrame, array, or list of arrays
-        Dataset to reduce dimensionality and plot.
-        """),
-    component_input_params=dedent("""\
-    x, y : int
-        1-based integer of components to plot on "x" and "y" axes. Defaults
-        are ``x=1``, ``y=2``.\
-        """),
-
-    groupby_input_params=dedent("""\
-    hue, marker : mapping (dict or pandas.Series)
-        A dict or pandas.Series mapping the row names of ``data`` to a
-        separate category to plot as separate colors (hue) or plotting
-        symbols (marker). See examples for interpretation.\
-        """),
-
-    # From seaborn.categorical
-    color=dedent("""\
-    color : matplotlib color, optional
-        Color for all of the elements, or seed for :func:`light_palette` when
-        using hue nesting.\
-    """),
-    palette=dedent("""\
-    palette : palette name, list, or dict, optional
-        Color palette that maps either the grouping variable or the hue
-        variable. If the palette is a dictionary, keys should be names of
-        levels and values should be matplotlib colors.\
-    """),
-    saturation=dedent("""\
-    saturation : float, optional
-        Proportion of the original saturation to draw colors at. Large patches
-        often look better with slightly desaturated colors, but set this to
-        ``1`` if you want the plot colors to perfectly match the input color
-        spec.\
-    """),
-    ax_in=dedent("""\
-    ax : matplotlib Axes, optional
-        Axes object to draw the plot onto, otherwise uses the current Axes.\
-    """),
-)
 
 
 class PCAPlotter(_ReducedPlotter):
