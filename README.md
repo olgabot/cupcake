@@ -1,11 +1,10 @@
 # Machine learning visualization
 
-[![](https://img.shields.io/travis/olgabot/mlviz.svg)](https://travis-ci.org/olgabot/mlviz)[![](https://img.shields.io/pypi/v/mlviz.svg)](https://pypi.python.org/pypi/mlviz)
+[![](https://img.shields.io/travis/olgabot/cupcake.svg)](https://travis-ci.org/olgabot/cupcake)[![](https://img.shields.io/pypi/v/cupcake.svg)](https://pypi.python.org/pypi/cupcake)
 
-Painlessly visualize results of machine leearning data
+Painlessly visualize results of machine learning analyses
 
 * Free software: BSD license
-* Documentation: https://olgabot.github.io/mlviz
 
 ## Features
 
