@@ -2,7 +2,7 @@
 User-facing interface for plotting all dimensionality reduction algorithms
 """
 
-def smushplot(data, smusher, n_components=2, marker='o', marker_order=None,
+def smushplot(data, smusher='pca', n_components=2, marker='o', marker_order=None,
               text=False, text_order=None, linewidth=1, linewidth_order=None,
               edgecolor='k', edgecolor_order=None, smusher_kws=None,
               plot_kws=None):

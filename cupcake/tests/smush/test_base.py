@@ -1,11 +1,10 @@
+import string
 
 import numpy as np
 import pandas as pd
 import pandas.util.testing as pdt
 import pytest
 from sklearn.decomposition import PCA
-import string
-
 
 
 class Test__ReducedPlotter(object):
@@ -26,7 +25,7 @@ class Test__ReducedPlotter(object):
                       edgecolor='k', edgecolor_order=None)
 
     def test_establish_reducer_make_new(self):
-        from cupcake.reduction import _ReducedPlotter
+        from cupcake.smush.base import _ReducedPlotter
 
         pca_kws = {}
         n_components = 2
@@ -39,7 +38,7 @@ class Test__ReducedPlotter(object):
         pdt.assert_dict_equal(p.reducer.get_params(), reducer.get_params())
 
     def test_establish_reducer_use_existing(self):
-        from cupcake.reduction import _ReducedPlotter
+        from cupcake.smush.base import _ReducedPlotter
 
         pca_kws = {}
         n_components = 2
@@ -52,7 +51,7 @@ class Test__ReducedPlotter(object):
         pdt.assert_dict_equal(p.reducer.get_params(), reducer.get_params())
 
     def test_establish_variables_matrix(self):
-        from cupcake.reduction import _ReducedPlotter
+        from cupcake.smush.base import _ReducedPlotter
 
         p = _ReducedPlotter()
         p.establish_variables(self.matrix)
@@ -64,7 +63,7 @@ class Test__ReducedPlotter(object):
         assert p.value_label is None
 
     def test_establish_variables_dataframe_named_axes(self):
-        from cupcake.reduction import _ReducedPlotter
+        from cupcake.smush.base import _ReducedPlotter
 
         p = _ReducedPlotter()
         p.establish_variables(self.data)
@@ -75,7 +74,7 @@ class Test__ReducedPlotter(object):
 
     @pytest.mark.xfail(reason='High dimensional data provided is too small')
     def test_establish_variables_too_few_axes(self):
-        from cupcake.reduction import _ReducedPlotter
+        from cupcake.smush.base import _ReducedPlotter
 
         p = _ReducedPlotter()
         matrix = self.vector.reshape(1, self.nrow * self.ncol)
@@ -84,14 +83,14 @@ class Test__ReducedPlotter(object):
     @pytest.mark.xfail(reason='High dimensional data provided has too many '
                               'axes')
     def test_establish_variables_too_many_axes(self):
-        from cupcake.reduction import _ReducedPlotter
+        from cupcake.smush.base import _ReducedPlotter
 
         p = _ReducedPlotter()
         matrix = self.vector.reshape((1, self.nrow, self.ncol))
         p.establish_variables(matrix)
 
     def test__maybe_make_grouper_single_attribute(self):
-        from cupcake.reduction import _ReducedPlotter
+        from cupcake.smush.base import _ReducedPlotter
 
         p = _ReducedPlotter()
         p.establish_variables(self.data)
@@ -102,7 +101,7 @@ class Test__ReducedPlotter(object):
         pdt.assert_series_equal(test_grouper, true_grouper)
 
     def test__maybe_make_grouper_multiple_attributes(self):
-        from cupcake.reduction import _ReducedPlotter
+        from cupcake.smush.base import _ReducedPlotter
 
         p = _ReducedPlotter()
         p.establish_variables(self.matrix)
@@ -117,7 +116,7 @@ class Test__ReducedPlotter(object):
         pdt.assert_categorical_equal(test_grouper, true_grouper)
 
     def test_establish_symbols_defaults(self):
-        from cupcake.reduction import _ReducedPlotter
+        from cupcake.smush.base import _ReducedPlotter
 
         p = _ReducedPlotter()
         p.establish_variables(self.matrix)
@@ -129,7 +128,7 @@ class Test__ReducedPlotter(object):
         assert p.text == False
 
     def test_establish_symbols_text_true(self):
-        from cupcake.reduction import _ReducedPlotter
+        from cupcake.smush.base import _ReducedPlotter
 
         symbol_kws = self.symbol_kws.copy()
         symbol_kws['text'] = True
@@ -143,7 +142,7 @@ class Test__ReducedPlotter(object):
         assert p.text
 
     def test_establish_symbols_text_series(self):
-        from cupcake.reduction import _ReducedPlotter
+        from cupcake.smush.base import _ReducedPlotter
 
         half = int(self.nrow/2.)
         text = pd.Series((['A'] * half) + (['B'] * half))
@@ -160,7 +159,7 @@ class Test__ReducedPlotter(object):
         assert p.text
 
     def test_establish_symbols_text_series_not_str(self):
-        from cupcake.reduction import _ReducedPlotter
+        from cupcake.smush.base import _ReducedPlotter
 
         half = int(self.nrow/2.)
         text = pd.Series(([1] * half) + ([2] * half)).map(str)
@@ -178,5 +177,4 @@ class Test__ReducedPlotter(object):
         assert p.text
 
     def test__maybe_make_grouper(self):
-        from cupcake.reduction import _ReducedPlotter
         pass
