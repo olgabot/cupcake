@@ -124,8 +124,27 @@ class _ReducedPlotter(object):
         self.colors = rgb_colors
         self.gray = gray
 
-
     def _maybe_make_grouper(self, attribute, attribute_order, dtype):
+        """Create a Series from a single attribute, else make categorical
+
+        Parameters
+        ----------
+        attribute : object
+            Either a single item to create into a series, or a series mapping
+            each sample to an attribute (e.g. the plotting symbol 'o' or
+            linewidth 1)
+        attribute_order : list
+            The order to create the attributes into
+        dtype : type
+            If "attribute" is of this type (as in, it is a single item), then
+            create a single series. This is for consistency so that every
+            possible plotting attribute can be used in a "groupby"
+
+        Returns
+        -------
+        grouper : pandas.Series
+            A mapping of the high dimensional data samples to the attribute
+        """
         if isinstance(attribute, dtype):
             # Use this single attribute for everything
             return pd.Series([attribute]*self.high_dimensional_data.shape[0],
