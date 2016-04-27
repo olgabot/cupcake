@@ -18,7 +18,12 @@ def smushplot(data, smusher='PCA', x=1, y=2, n_components=2, marker='o',
         Either a string specifying a valid dimensionality reduction algorithm
         in ``sklearn.decomposition`` or ``sklearn.manifold``, or any object
         with ``fit_transform()`` methods.
-
+    x, y : int
+        1-based counting of which components to plot as the x- and y-axes. For
+        example, to plot component 4 on the x-axis and component 10 on the y,
+        do ``x=4, y=10``.
+    n_components : int
+        Number of components to use when reducing dimensionality
 
     Notes
     -----
