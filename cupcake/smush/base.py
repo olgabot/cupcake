@@ -207,7 +207,7 @@ class _ReducedPlotter(object):
         grouper : pandas.Series
             A mapping of the high dimensional data samples to the attribute
         """
-        if isinstance(attribute, dtype):
+        if dtype is None or isinstance(attribute, dtype):
             # Use this single attribute for everything
             return pd.Series([attribute]*self.high_dimensional_data.shape[0],
                              index=self.high_dimensional_data.index)
@@ -233,7 +233,7 @@ class _ReducedPlotter(object):
                 # 1a: text=True, so use the sample names of data as the
                 # plotting symbol
                 symbol = pd.Series(
-                    map(str, self.high_dimensional_data.index))
+                    map(str, self.samples), index=self.samples)
             else:
                 # 1b: text=False, so use the specified marker for each sample
                 symbol = self._maybe_make_grouper(marker, marker_order, str)
