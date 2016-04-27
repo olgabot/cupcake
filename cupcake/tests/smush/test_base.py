@@ -50,6 +50,7 @@ class Test__ReducedPlotter(object):
         assert isinstance(p.reducer, type(reducer))
         pdt.assert_dict_equal(p.reducer.get_params(), reducer.get_params())
 
+    # --- Test figuring out what to reduce --- #
     def test_establish_variables_matrix(self):
         from cupcake.smush.base import _ReducedPlotter
 
@@ -89,6 +90,7 @@ class Test__ReducedPlotter(object):
         matrix = self.vector.reshape((1, self.nrow, self.ncol))
         p.establish_variables(matrix)
 
+    # --- Test internal series making function --- #
     def test__maybe_make_grouper_single_attribute(self):
         from cupcake.smush.base import _ReducedPlotter
 
@@ -115,6 +117,7 @@ class Test__ReducedPlotter(object):
                                       ordered=True)
         pdt.assert_categorical_equal(test_grouper, true_grouper)
 
+    # --- Test assigning plotting symbols --- #
     def test_establish_symbols_defaults(self):
         from cupcake.smush.base import _ReducedPlotter
 
@@ -176,5 +179,9 @@ class Test__ReducedPlotter(object):
         pdt.assert_categorical_equal(p.symbol, symbol)
         assert p.text
 
-    def test__maybe_make_grouper(self):
-        pass
+    # --- Test assigning colors --- #
+    def test_establish_colors_all_none(self):
+        from cupcake.smush.base import _ReducedPlotter
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.matrix)
