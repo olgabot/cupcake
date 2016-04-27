@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as pdt
 import pytest
+import seaborn as sns
 from sklearn.decomposition import PCA
 
 
@@ -134,9 +135,12 @@ class Test__ReducedPlotter(object):
         p.establish_variables(self.data)
         p.establish_symbols(**self.symbol_kws)
 
-        pdt.assert_series_equal(p.symbol, pd.Series(['o']*self.nrow))
-        pdt.assert_series_equal(p.linewidth, pd.Series([1]*self.nrow))
-        pdt.assert_series_equal(p.edgecolor, pd.Series(['k']*self.nrow))
+        pdt.assert_series_equal(p.symbol, pd.Series(['o']*self.nrow,
+                                                    index=self.data.index))
+        pdt.assert_series_equal(p.linewidth, pd.Series([1]*self.nrow,
+                                                       index=self.data.index))
+        pdt.assert_series_equal(p.edgecolor, pd.Series(['k']*self.nrow,
+                                                       index=self.data.index))
         assert p.text == False
 
     def test_establish_symbols_text_true(self):
@@ -150,7 +154,8 @@ class Test__ReducedPlotter(object):
         p.establish_symbols(**symbol_kws)
 
         pdt.assert_series_equal(p.symbol,
-                                pd.Series(map(str, list(range(self.nrow)))))
+                                pd.Series(map(str, list(range(self.nrow))),
+                                          index=self.data.index))
         assert p.text
 
     def test_establish_symbols_text_series(self):
@@ -158,6 +163,22 @@ class Test__ReducedPlotter(object):
 
         symbol_kws = self.symbol_kws.copy()
         symbol_kws['text'] = self.groupby
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_symbols(**symbol_kws)
+
+        order = sns.utils.categorical_order(self.groupby)
+        symbol = pd.Categorical(self.groupby, categories=order, ordered=True)
+        pdt.assert_categorical_equal(p.symbol, symbol)
+        assert p.text
+
+    def test_establish_symbols_text_series_ordered(self):
+        from cupcake.smush.base import _ReducedPlotter
+
+        symbol_kws = self.symbol_kws.copy()
+        symbol_kws['text'] = self.groupby
+        symbol_kws['text_order'] = self.order
 
         p = _ReducedPlotter()
         p.establish_variables(self.data)
