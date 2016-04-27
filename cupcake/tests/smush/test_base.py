@@ -354,6 +354,24 @@ class Test__ReducedPlotter(object):
         assert p.n_colors == self.nrow
         assert len(p.high_dimensional_data.groupby(p.color)) == p.n_colors
 
+    @pytest.mark.xfail
+    def establish_colors_color_hue_order_incorrect_length(self):
+        # Option 10. "color" and "hue_order" are specified, but "hue_order" is
+        #  the incorrect length
+        from cupcake.smush.base import _ReducedPlotter
+
+        # Reverse the index so hue_order is different from original order
+        hue_order = self.data.index[::-1]
+        hue_order = hue_order[:self.half]
+
+        color_kws = self.color_kws.copy()
+        color_kws['color'] = self.color
+        color_kws['hue_order'] = hue_order
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
+
     def establish_colors_color_hue(self):
         # Option 11. "color" and "hue" are specified
         from cupcake.smush.base import _ReducedPlotter
