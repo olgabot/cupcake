@@ -111,7 +111,6 @@ class _ReducedPlotter(object):
                         if len(hue_order) == self.n_samples:
                             n_colors = self.n_samples
                             colors = sns.light_palette(color,
-                                                       saturation=saturation,
                                                        n_colors=n_colors)
                             color_groupby = self.Series(
                                 colors, index=self.samples)
@@ -133,8 +132,7 @@ class _ReducedPlotter(object):
                 if hue is None:
                     # Assign every sample a different color_groupby from palette
                     n_colors = self.n_samples
-                    colors = sns.color_palette(palette, n_colors=n_colors,
-                                               saturation=saturation)
+                    colors = sns.color_palette(palette, n_colors=n_colors)
 
                     index = self.samples if hue_order is None else hue_order
                     color_groupby = pd.Series(colors, index=index)
@@ -144,8 +142,7 @@ class _ReducedPlotter(object):
                     grouped = self.high_dimensional_data.groupby(hue)
                     size = grouped.size()
                     n_colors = size.shape[0]
-                    palette = sns.color_palette(palette, n_colors=n_colors,
-                                                saturation=saturation)
+                    palette = sns.color_palette(palette, n_colors=n_colors)
 
                     color_groupby = self._color_grouper_from_palette(
                         grouped, palette, hue_order)
@@ -160,7 +157,6 @@ class _ReducedPlotter(object):
                         if len(hue_order) == self.n_samples:
                             n_colors = self.n_samples
                             colors = sns.light_palette(color,
-                                                       saturation=saturation,
                                                        n_colors=n_colors)
                             color_groupby = self.Series(colors,
                                                         index=self.samples)
@@ -173,8 +169,7 @@ class _ReducedPlotter(object):
                     grouped = self.high_dimensional_data.groupby(hue)
                     size = grouped.size()
                     self.n_colors = len(size)
-                    palette = sns.light_palette(color, n_colors=n_colors,
-                                                saturation=saturation)
+                    palette = sns.light_palette(color, n_colors=n_colors)
 
                     color_groupby = self._color_grouper_from_palette(
                         grouped, palette, hue_order)
