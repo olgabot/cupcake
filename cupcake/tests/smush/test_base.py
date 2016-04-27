@@ -123,9 +123,9 @@ class Test__ReducedPlotter(object):
         order = ['A', 'B']
 
         test_grouper = p._maybe_make_grouper(groupby, order, str)
-        true_grouper = pd.Categorical(groupby, categories=order,
-                                      ordered=True)
-        pdt.assert_categorical_equal(test_grouper, true_grouper)
+        true_grouper = pd.Series(pd.Categorical(groupby, categories=order,
+                                      ordered=True), index=self.data.index)
+        pdt.assert_series_equal(test_grouper, true_grouper)
 
     # --- Test assigning plotting symbols --- #
     def test_establish_symbols_defaults(self):
@@ -141,7 +141,7 @@ class Test__ReducedPlotter(object):
                                                        index=self.data.index))
         pdt.assert_series_equal(p.edgecolor, pd.Series(['k']*self.nrow,
                                                        index=self.data.index))
-        assert p.text == False
+        assert not p.text
 
     def test_establish_symbols_text_true(self):
         from cupcake.smush.base import _ReducedPlotter
@@ -169,8 +169,10 @@ class Test__ReducedPlotter(object):
         p.establish_symbols(**symbol_kws)
 
         order = sns.utils.categorical_order(self.groupby)
-        symbol = pd.Categorical(self.groupby, categories=order, ordered=True)
-        pdt.assert_categorical_equal(p.symbol, symbol)
+        symbol = pd.Series(pd.Categorical(self.groupby, categories=order,
+                                          ordered=True),
+                           index=self.data.index)
+        pdt.assert_series_equal(p.symbol, symbol)
         assert p.text
 
     def test_establish_symbols_text_series_ordered(self):
@@ -184,9 +186,9 @@ class Test__ReducedPlotter(object):
         p.establish_variables(self.data)
         p.establish_symbols(**symbol_kws)
 
-        symbol = pd.Categorical(self.groupby, ordered=True,
-                                categories=self.order)
-        pdt.assert_categorical_equal(p.symbol, symbol)
+        symbol = pd.Series(pd.Categorical(self.groupby, ordered=True,
+                                categories=self.order), index=self.data.index)
+        pdt.assert_series_equal(p.symbol, symbol)
         assert p.text
 
     def test_establish_symbols_text_series_not_str(self):
@@ -202,9 +204,9 @@ class Test__ReducedPlotter(object):
         p.establish_variables(self.data)
         p.establish_symbols(**symbol_kws)
 
-        symbol = pd.Categorical(text, ordered=True,
-                                categories=['1', '2'])
-        pdt.assert_categorical_equal(p.symbol, symbol)
+        symbol = pd.Series(pd.Categorical(text, ordered=True,
+                                categories=['1', '2']), index=self.data.index)
+        pdt.assert_series_equal(p.symbol, symbol)
         assert p.text
 
     # --- Test assigning colors --- #

@@ -205,11 +205,12 @@ class _ReducedPlotter(object):
         """
         if dtype is None or isinstance(attribute, dtype):
             # Use this single attribute for everything
-            return pd.Series([attribute]*self.high_dimensional_data.shape[0],
-                             index=self.high_dimensional_data.index)
+            return pd.Series([attribute]*self.n_samples, index=self.samples)
         else:
             order = sns.utils.categorical_order(attribute, order)
-            return pd.Categorical(attribute, categories=order, ordered=True)
+            attribute = pd.Categorical(attribute, categories=order,
+                                       ordered=True)
+            return pd.Series(attribute, index=self.samples)
 
     def _color_grouper_from_palette(self, grouped, palette, hue_order):
         color_tuples = [zip(df.index, [palette[i]] * df.shape[0])
@@ -238,7 +239,9 @@ class _ReducedPlotter(object):
             # Assume "text" is a mapping from row names (sample ids) of the
             # data to text labels
             text_order = sns.utils.categorical_order(text, text_order)
-            symbol = pd.Categorical(text, categories=text_order, ordered=True)
+            symbol = pd.Series(pd.Categorical(text, categories=text_order,
+                                              ordered=True),
+                               index=self.samples)
             if marker is not None:
                 warnings.warn('Overriding plotting symbol from "marker" with '
                               'values in "text"')
