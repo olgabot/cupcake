@@ -124,9 +124,10 @@ class _ReducedPlotter(object):
                     # Use the hue grouping, possibly with an order (handled
                     # within _maybe_make_grouper)
                     color_groupby = self._maybe_make_grouper(hue,
-                                                             order=hue_order)
-                    n_colors = self.high_dimensional_data.groupby(
-                        color_groupby).size()
+                                                             order=hue_order,
+                                                             dtype=str)
+                    n_colors = len(self.high_dimensional_data.groupby(
+                        color_groupby).size())
             else:
                 # User-defined palette
                 if hue is None:
