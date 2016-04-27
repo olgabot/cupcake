@@ -12,7 +12,9 @@ class PCAPlotter(_ReducedPlotter):
     axis_label = 'Principal Component {:d}'
 
     def __init__(self, data, n_components, color, hue, hue_order,
-                 palette, marker, marker_order, saturation, **pca_kws):
+                 palette, saturation, marker, marker_order, text, text_order,
+                 linewidth, linewidth_order, edgecolor,
+                 edgecolor_order, **pca_kws):
         """Initialize the variables and data for plotting PCA
 
         Parameters
@@ -25,8 +27,10 @@ class PCAPlotter(_ReducedPlotter):
         pca_kws.setdefault('n_components', n_components)
 
         self.establish_variables(data)
-        self.establish_colors(color, hue, hue_order, palette, marker, marker_order, saturation)
-        self.establish_markers(marker, marker_order, text, text_order, plot_kws)
+        self.establish_colors(color, hue, hue_order, palette, saturation)
+        self.establish_symbols(marker, marker_order, text, text_order,
+                               linewidth, linewidth_order, edgecolor,
+                               edgecolor_order)
 
         self.establish_reducer(PCA, n_components, pca_kws)
         self.compute_reduction()
