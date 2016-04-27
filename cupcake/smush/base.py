@@ -4,6 +4,7 @@ Not intended to be user-facing.
 """
 from __future__ import division
 import colorsys
+import itertools
 import matplotlib as mpl
 from textwrap import dedent
 import warnings
@@ -70,61 +71,122 @@ class _ReducedPlotter(object):
         self.group_label = group_label
         self.value_label = value_label
 
-    def establish_colors(self, color, palette, saturation):
+        self.samples = self.high_dimensional_data.index
+        self.features = self.high_dimensional_data.columns
+        self.n_samples = len(self.samples)
+        self.n_features = len(self.features)
+
+    def establish_colors(self, color, hue, hue_order, palette, saturation):
         """Get a list of colors for the main component of the plots."""
-        if self.hue_names is None:
-            n_colors = len(self.reduced_data.index)
-        else:
-            n_colors = len(self.hue_names)
 
-        # Determine the main colors
-        if color is None and palette is None:
-            # Determine whether the current palette will have enough values
-            # If not, we'll default to the husl palette so each is distinct
-            current_palette = sns.utils.get_color_cycle()
-            if n_colors <= len(current_palette):
-                colors = sns.color_palette(n_colors=n_colors)
+        if hue is None:
+            if hue_order is not None and len(hue) != self.n_samples:
+                error = 'Cannot specify "hue_order" without specifying "hue"'
+                raise ValueError(error)
+
+            if palette is None:
+                n_colors = 1
             else:
-                colors = sns.husl_palette(n_colors, l=.7)
-
-        elif palette is None:
-            # When passing a specific color, the interpretation depends
-            # on whether there is a hue variable or not.
-            # If so, we will make a blend palette so that the different
-            # levels have some amount of variation.
-            if self.hue_names is None:
-                colors = [color] * n_colors
-            else:
-                colors = sns.light_palette(color, n_colors)
+                n_colors = self.n_samples
         else:
+            if hue_order is None:
+                n_colors = self.high_dimensional_data.groupby(hue).size()
+            else:
+                n_colors = len(hue_order)
+        n_colors = None
 
-            # Let `palette` be a dict mapping level to color
-            if isinstance(palette, dict):
-                if self.hue_names is None:
-                    levels = self.group_names
+        if color is None:
+            # No color_groupby is specified
+            if palette is None:
+                # Auto-assigned palette
+                if hue is None:
+                    current_palette = sns.utils.get_color_cycle()
+                    color = current_palette[0]
+                    if hue_order is None:
+                        # Auto-assign one color_groupby to all samples from current
+                        # color_groupby cycle
+                        n_colors = 1
+                        color_groupby = self._maybe_make_grouper(color)
+                    else:
+                        if len(hue_order) == self.n_samples:
+                            n_colors = self.n_samples
+                            colors = sns.light_palette(color,
+                                                       saturation=saturation,
+                                                       n_colors=n_colors)
+                            color_groupby = self.Series(
+                                colors, index=self.samples)
+                        else:
+                            error = 'Cannot interpret "hue_order" when "hue" is ' \
+                                    'not specified [or len(hue_order) !=' \
+                                    ' len(data.index)]'
+                            raise ValueError(error)
+
                 else:
-                    levels = self.hue_names
-                palette = [palette[l] for l in levels]
+                    # Use the hue grouping, possibly with an order (handled
+                    # within _maybe_make_grouper)
+                    color_groupby = self._maybe_make_grouper(hue,
+                                                             order=hue_order)
+                    n_colors = self.high_dimensional_data.groupby(
+                        color_groupby).size()
+            else:
+                # User-defined palette
+                if hue is None:
+                    # Assign every sample a different color_groupby from palette
+                    n_colors = self.n_samples
+                    colors = sns.color_palette(palette, n_colors=n_colors,
+                                               saturation=saturation)
 
-            colors = sns.color_palette(palette, n_colors)
+                    index = self.samples if hue_order is None else hue_order
+                    color_groupby = pd.Series(colors, index=index)
+                else:
+                    # Assign every group a different color_groupby from palette
 
-        # Desaturate a bit because these are patches
-        if saturation < 1:
-            colors = sns.color_palette(colors, desat=saturation)
+                    grouped = self.high_dimensional_data.groupby(hue)
+                    size = grouped.size()
+                    n_colors = size.shape[0]
+                    palette = sns.color_palette(palette, n_colors=n_colors,
+                                                saturation=saturation)
 
-        # Convert the colors to a common representations
-        rgb_colors = sns.color_palette(colors)
+                    color_groupby = self._color_grouper_from_palette(
+                        grouped, palette, hue_order)
+        else:
+            # Single color_groupby is provided
+            if palette is None:
+                if hue is None:
+                    if hue_order is None:
+                        color_groupby = self._maybe_make_grouper(color)
+                        n_colors = 1
+                    else:
+                        if len(hue_order) == self.n_samples:
+                            n_colors = self.n_samples
+                            colors = sns.light_palette(color,
+                                                       saturation=saturation,
+                                                       n_colors=n_colors)
+                            color_groupby = self.Series(colors,
+                                                        index=self.samples)
+                        else:
+                            error = 'Cannot interpret "hue_order" when "hue"' \
+                                    ' is not specified [or len(hue_order) !=' \
+                                    ' len(data.index)]'
+                            raise ValueError(error)
+                else:
+                    grouped = self.high_dimensional_data.groupby(hue)
+                    size = grouped.size()
+                    self.n_colors = len(size)
+                    palette = sns.light_palette(color, n_colors=n_colors,
+                                                saturation=saturation)
 
-        # Determine the gray color to use for the lines framing the plot
-        light_vals = [colorsys.rgb_to_hls(*c)[1] for c in rgb_colors]
-        l = min(light_vals) * .6
-        gray = mpl.colors.rgb2hex((l, l, l))
+                    color_groupby = self._color_grouper_from_palette(
+                        grouped, palette, hue_order)
+            else:
+                error = 'Cannot specify both "palette" and "color"'
+                raise ValueError(error)
 
         # Assign object attributes
-        self.colors = rgb_colors
-        self.gray = gray
+        self.n_colors = n_colors
+        self.color = color_groupby
 
-    def _maybe_make_grouper(self, attribute, attribute_order, dtype):
+    def _maybe_make_grouper(self, attribute, order=None, dtype=None):
         """Create a Series from a single attribute, else make categorical
 
         Parameters
@@ -133,7 +195,7 @@ class _ReducedPlotter(object):
             Either a single item to create into a series, or a series mapping
             each sample to an attribute (e.g. the plotting symbol 'o' or
             linewidth 1)
-        attribute_order : list
+        order : list
             The order to create the attributes into
         dtype : type
             If "attribute" is of this type (as in, it is a single item), then
@@ -150,10 +212,16 @@ class _ReducedPlotter(object):
             return pd.Series([attribute]*self.high_dimensional_data.shape[0],
                              index=self.high_dimensional_data.index)
         else:
-            attribute_order = sns.utils.categorical_order(attribute,
-                                                          attribute_order)
-            return pd.Categorical(attribute, categories=attribute_order,
-                                  ordered=True)
+            order = sns.utils.categorical_order(attribute, order)
+            return pd.Categorical(attribute, categories=order, ordered=True)
+
+    def _color_grouper_from_palette(self, grouped, palette, hue_order):
+        color_tuples = [zip(df.index, [palette[i]] * df.shape[0])
+                        for i, (g, df) in enumerate(grouped)]
+
+        colors = dict(itertools.chain(*color_tuples))
+        color_groupby = self._maybe_make_grouper(colors, hue_order)
+        return color_groupby
 
     def establish_symbols(self, marker, marker_order, text, text_order,
                           linewidth, linewidth_order, edgecolor,
@@ -280,13 +348,13 @@ class _ReducedPlotter(object):
         """Plot each sample in the data in the reduced space"""
 
         # Iterate over all the possible modifications of the points
-        for hue, hue_df in self.reduced_data.groupby(self.hue):
-            for symbol, symbol_df in hue_df.groupby(self.symbol):
+        for color, color_df in self.reduced_data.groupby(self.color):
+            for symbol, symbol_df in color_df.groupby(self.symbol):
                 for lw, lw_df in symbol_df.groupby(self.linewidth):
                     for ec, ec_df in lw_df.groupby(self.edgecolor):
                         # and finally ... actually plot the data!
                         self.symbolplotter(ec_df[:, x], ec_df[:, y],
-                                           symbol=symbol, color=hue,
+                                           symbol=symbol, color=color,
                                            ax=ax, linewidth=lw, edgecolor=ec,
                                            **kwargs)
 

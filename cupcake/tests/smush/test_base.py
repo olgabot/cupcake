@@ -20,9 +20,18 @@ class Test__ReducedPlotter(object):
     data.index.name = 'Samples'
     data.columns.name = 'Features'
 
+    half = int(nrow / 2.)
+    groupby = pd.Series((['B'] * half) + (['A'] * half))
+    order = ['A', 'B']
+
+    palette = 'PRGn'
+    color = 'DarkTeal'
+
     symbol_kws = dict(marker='o', marker_order=None, text=False,
-                      text_order=None, linewidth=1, linewidth_order=None,
-                      edgecolor='k', edgecolor_order=None)
+                          text_order=None, linewidth=1, linewidth_order=None,
+                          edgecolor='k', edgecolor_order=None)
+    color_kws = dict(color=None, palette=None, hue=None, hue_order=None,
+                     saturation=None)
 
     def test_establish_reducer_make_new(self):
         from cupcake.smush.base import _ReducedPlotter
@@ -91,7 +100,7 @@ class Test__ReducedPlotter(object):
         p.establish_variables(matrix)
 
     # --- Test internal series making function --- #
-    def test__maybe_make_grouper_single_attribute(self):
+    def test__maybe_make_grouper_single_groupby(self):
         from cupcake.smush.base import _ReducedPlotter
 
         p = _ReducedPlotter()
@@ -102,18 +111,18 @@ class Test__ReducedPlotter(object):
                                  index=self.data.index)
         pdt.assert_series_equal(test_grouper, true_grouper)
 
-    def test__maybe_make_grouper_multiple_attributes(self):
+    def test__maybe_make_grouper_multiple_groupbys(self):
         from cupcake.smush.base import _ReducedPlotter
 
         p = _ReducedPlotter()
-        p.establish_variables(self.matrix)
+        p.establish_variables(self.data)
 
         half = int(self.nrow/2.)
-        attribute = pd.Series((['B'] * half) + (['A'] * half))
+        groupby = pd.Series((['B'] * half) + (['A'] * half))
         order = ['A', 'B']
 
-        test_grouper = p._maybe_make_grouper(attribute, order, str)
-        true_grouper = pd.Categorical(attribute, categories=order,
+        test_grouper = p._maybe_make_grouper(groupby, order, str)
+        true_grouper = pd.Categorical(groupby, categories=order,
                                       ordered=True)
         pdt.assert_categorical_equal(test_grouper, true_grouper)
 
@@ -122,7 +131,7 @@ class Test__ReducedPlotter(object):
         from cupcake.smush.base import _ReducedPlotter
 
         p = _ReducedPlotter()
-        p.establish_variables(self.matrix)
+        p.establish_variables(self.data)
         p.establish_symbols(**self.symbol_kws)
 
         pdt.assert_series_equal(p.symbol, pd.Series(['o']*self.nrow))
@@ -137,7 +146,7 @@ class Test__ReducedPlotter(object):
         symbol_kws['text'] = True
 
         p = _ReducedPlotter()
-        p.establish_variables(self.matrix)
+        p.establish_variables(self.data)
         p.establish_symbols(**symbol_kws)
 
         pdt.assert_series_equal(p.symbol,
@@ -147,17 +156,15 @@ class Test__ReducedPlotter(object):
     def test_establish_symbols_text_series(self):
         from cupcake.smush.base import _ReducedPlotter
 
-        half = int(self.nrow/2.)
-        text = pd.Series((['A'] * half) + (['B'] * half))
-
         symbol_kws = self.symbol_kws.copy()
-        symbol_kws['text'] = text
+        symbol_kws['text'] = self.groupby
 
         p = _ReducedPlotter()
-        p.establish_variables(self.matrix)
+        p.establish_variables(self.data)
         p.establish_symbols(**symbol_kws)
 
-        symbol = pd.Categorical(text, ordered=True, categories=['A', 'B'])
+        symbol = pd.Categorical(self.groupby, ordered=True,
+                                categories=self.order)
         pdt.assert_categorical_equal(p.symbol, symbol)
         assert p.text
 
@@ -171,7 +178,7 @@ class Test__ReducedPlotter(object):
         symbol_kws['text'] = text
 
         p = _ReducedPlotter()
-        p.establish_variables(self.matrix)
+        p.establish_variables(self.data)
         p.establish_symbols(**symbol_kws)
 
         symbol = pd.Categorical(text, ordered=True,
@@ -181,7 +188,228 @@ class Test__ReducedPlotter(object):
 
     # --- Test assigning colors --- #
     def test_establish_colors_all_none(self):
+        # Option 1. All parameters are set to default values
         from cupcake.smush.base import _ReducedPlotter
 
         p = _ReducedPlotter()
-        p.establish_variables(self.matrix)
+        p.establish_variables(self.data)
+        p.establish_colors(**self.color_kws)
+
+        assert p.n_colors == 1
+        assert len(p.high_dimensional_data.groupby(p.color)) == p.n_colors
+
+    @pytest.mark.xfail
+    def test_establish_colors_hue_order(self):
+        # Option 2. hue_order is specified but nothing else is
+        from cupcake.smush.base import _ReducedPlotter
+
+        color_kws = self.color_kws.copy()
+        color_kws['hue_order'] = self.order
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
+
+    def test_establish_colors_hue(self):
+        # Option 3. "hue" is specified but nothing else is
+        from cupcake.smush.base import _ReducedPlotter
+
+        color_kws = self.color_kws.copy()
+        color_kws['hue'] = self.groupby
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
+
+        assert p.n_colors == 2
+        assert len(p.high_dimensional_data.groupby(p.color)) == p.n_colors
+
+    def establish_colors_hue_hue_order(self):
+        # Option 4. Both "hue" and "hue_order" are specified
+        from cupcake.smush.base import _ReducedPlotter
+
+        color_kws = self.color_kws.copy()
+        color_kws['hue'] = self.groupby
+        color_kws['hue_order'] = self.order
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
+
+        test_grouped = p.high_dimensional_data.groupby(p.color)
+
+        assert p.n_colors == 2
+        assert len(test_grouped) == p.n_colors
+
+    def establish_colors_palette(self):
+        # Option 5. "palette" is specified but nothing else is
+        from cupcake.smush.base import _ReducedPlotter
+
+        color_kws = self.color_kws.copy()
+        color_kws['palette'] = self.palette
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
+
+        assert p.n_colors == self.nrow
+        assert len(p.high_dimensional_data.groupby(p.color)) == p.n_colors
+
+    def establish_colors_palette_hue_order(self):
+        # Option 6a. "palette" and "hue_order" are specified
+        from cupcake.smush.base import _ReducedPlotter
+
+        # Reverse the index order
+        hue_order = self.data.index[::-1]
+
+        color_kws = self.color_kws.copy()
+        color_kws['palette'] = self.palette
+        color_kws['hue_order'] = hue_order
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
+
+        assert p.n_colors == self.nrow
+        assert len(p.high_dimensional_data.groupby(p.color)) == p.n_colors
+
+    @pytest.mark.xfail
+    def establish_colors_palette_hue_order_incorrect_length(self):
+        # Option 6b. "palette" and "hue_order" are specified, but hue_order
+        # isn't correct length
+        from cupcake.smush.base import _ReducedPlotter
+
+        # Reverse the index order
+        hue_order = self.data.index[::-1]
+        hue_order = hue_order[:self.half]
+
+        color_kws = self.color_kws.copy()
+        color_kws['palette'] = self.palette
+        color_kws['hue_order'] = hue_order
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
+
+    def establish_colors_palette_hue(self):
+        # Option 7. "palette" and "hue" are specified
+        from cupcake.smush.base import _ReducedPlotter
+
+        color_kws = self.color_kws.copy()
+        color_kws['palette'] = self.palette
+        color_kws['hue'] = self.groupby
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
+
+        assert p.n_colors == 2
+        assert len(p.high_dimensional_data.groupby(p.color)) == p.n_colors
+
+    def establish_colors_palette_hue_hue_order(self):
+        # Option 8. "palette", "hue", and "hue_order" are specified
+        from cupcake.smush.base import _ReducedPlotter
+
+        color_kws = self.color_kws.copy()
+        color_kws['palette'] = self.palette
+        color_kws['hue'] = self.groupby
+        color_kws['hue_order'] = self.order
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
+
+        assert p.n_colors == 2
+        assert len(p.high_dimensional_data.groupby(p.color)) == p.n_colors
+
+    def establish_colors_color(self):
+        # Option 9. "color" is specified
+        from cupcake.smush.base import _ReducedPlotter
+
+        color_kws = self.color_kws.copy()
+        color_kws['color'] = self.color
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
+
+        assert p.n_colors == 1
+        assert len(p.high_dimensional_data.groupby(p.color)) == p.n_colors
+
+    def establish_colors_color_hue_order(self):
+        # Option 10. "color" and "hue_order" are specified
+        from cupcake.smush.base import _ReducedPlotter
+
+        # Reverse the index so hue_order is different from original order
+        hue_order = self.data.index[::-1]
+
+        color_kws = self.color_kws.copy()
+        color_kws['color'] = self.color
+        color_kws['hue_order'] = hue_order
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
+
+        assert p.n_colors == self.nrow
+        assert len(p.high_dimensional_data.groupby(p.color)) == p.n_colors
+
+    def establish_colors_color_hue(self):
+        # Option 11. "color" and "hue" are specified
+        from cupcake.smush.base import _ReducedPlotter
+
+        color_kws = self.color_kws.copy()
+        color_kws['color'] = self.color
+        color_kws['hue'] = self.groupby
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
+
+        assert p.n_colors == 2
+        assert len(p.high_dimensional_data.groupby(p.color)) == p.n_colors
+
+    def establish_colors_color_hue_hue_order(self):
+        # Option 12. "color", "hue", and "hue_order" are specified
+        from cupcake.smush.base import _ReducedPlotter
+
+        color_kws = self.color_kws.copy()
+        color_kws['color'] = self.color
+        color_kws['hue'] = self.groupby
+        color_kws['hue_order'] = self.order
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
+
+        assert p.n_colors == 2
+        assert len(p.high_dimensional_data.groupby(p.color)) == p.n_colors
+
+    @pytest.fixture(params=[None, 'hue'])
+    def hue(self, request):
+        if request.param is None:
+            return request.param
+        else:
+            return self.groupby
+
+    @pytest.fixture(params=[None, 'hue_order'])
+    def hue_order(self, request):
+        if request.param is None:
+            return request.param
+        else:
+            return self.order
+
+    @pytest.mark.xfail
+    def establish_colors_color_palette(self, hue, hue_order):
+        # Option 13-16. "color", and "palette" are specified but incompatible
+        from cupcake.smush.base import _ReducedPlotter
+
+        color_kws = self.color_kws.copy()
+        color_kws['color'] = self.color
+        color_kws['palette'] = self.palette
+        color_kws['hue'] = hue
+        color_kws['hue_order'] = hue_order
+
+        p = _ReducedPlotter()
+        p.establish_variables(self.data)
+        p.establish_colors(**color_kws)
