@@ -3,7 +3,6 @@ Internal abstract base class for all dimensionality reduction plots.
 Not intended to be user-facing.
 """
 from __future__ import division
-import colorsys
 import itertools
 import matplotlib as mpl
 from textwrap import dedent
@@ -88,8 +87,8 @@ class _ReducedPlotter(object):
                     current_palette = sns.utils.get_color_cycle()
                     color = current_palette[0]
                     if hue_order is None:
-                        # Auto-assign one color_groupby to all samples from current
-                        # color_groupby cycle
+                        # Auto-assign one color_groupby to all samples from
+                        # current color cycle
                         n_colors = 1
                         color_groupby = self._maybe_make_grouper(color)
                     else:
@@ -100,8 +99,8 @@ class _ReducedPlotter(object):
                             color_groupby = self.Series(
                                 colors, index=self.samples)
                         else:
-                            error = 'Cannot interpret "hue_order" when "hue" is ' \
-                                    'not specified [or len(hue_order) !=' \
+                            error = 'Cannot interpret "hue_order" when "hue"' \
+                                    ' is not specified [or len(hue_order) !=' \
                                     ' len(data.index)]'
                             raise ValueError(error)
 
@@ -116,7 +115,8 @@ class _ReducedPlotter(object):
             else:
                 # User-defined palette
                 if hue is None:
-                    # Assign every sample a different color_groupby from palette
+                    # Assign every sample a different color_groupby from
+                    # palette
                     n_colors = self.n_samples
                     colors = sns.color_palette(palette, n_colors=n_colors)
 

@@ -44,10 +44,10 @@ class PCAPlotter(_ReducedPlotter):
             colors = sns.color_palette(self.palette, n_colors=len(grouped.groups))
 #             with sns.color_palette(palette, n_colors=len(grouped.groups)):
             for color, (group, df) in zip(colors, self.plot_data.groupby(self.groupby)):
-                marker = group_to_marker[group]
+                # marker = group_to_marker[group]
 #                 color =
                 ax.plot(df.iloc[:, 0], df.iloc[:, 1], 'o',
-                        label=group, marker=marker, color=color, **kwargs)
+                        label=group, color=color, **kwargs)
         else:
             ax.plot(self.decomposed.iloc[:, 0], self.decomposed.iloc[:, 1],
                     'o', **kwargs)
