@@ -78,21 +78,6 @@ class _ReducedPlotter(object):
 
     def establish_colors(self, color, hue, hue_order, palette, saturation):
         """Get a list of colors for the main component of the plots."""
-
-        if hue is None:
-            if hue_order is not None and len(hue) != self.n_samples:
-                error = 'Cannot specify "hue_order" without specifying "hue"'
-                raise ValueError(error)
-
-            if palette is None:
-                n_colors = 1
-            else:
-                n_colors = self.n_samples
-        else:
-            if hue_order is None:
-                n_colors = self.high_dimensional_data.groupby(hue).size()
-            else:
-                n_colors = len(hue_order)
         n_colors = None
 
         if color is None:
