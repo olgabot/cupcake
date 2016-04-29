@@ -3,14 +3,30 @@
 language: python
 
 python:
-  - "3.4"
-  - "3.3"
-  - "2.7"
-  - "2.6"
-  - "pypy"
+- '2.7'
+- '3.4'
+- '3.5'
 
-# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -r requirements.txt
+before_install:
+- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh
+  -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.4.2-Linux-x86_64.sh
+  -O miniconda.sh; fi
+- chmod +x miniconda.sh
+- "./miniconda.sh -b"
+- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then export PATH=~/miniconda2/bin:$PATH;
+  else export PATH=~/miniconda3/bin/:$PATH; fi
+- conda update --yes conda
 
-# command to run tests, e.g. python setup.py test
-script: python setup.py test
+install:
+- conda create -n testenv --yes python=$TRAVIS_PYTHON_VERSION pip
+- source activate testenv
+- conda install --yes --file conda_requirements.txt --channel bioconda
+- pip install -r requirements.txt
+- pip install .
+
+script:
+- make coverage
+- make lint
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
