@@ -15,7 +15,7 @@ import pandas as pd
 import seaborn as sns
 
 
-class _ReducedPlotter(object):
+class SmushPlotterBase(object):
     """Generic object for plotting high-dimensional data on 2d space"""
 
     def establish_reducer(self, reducer, n_components=None, smusher_kws=None):
@@ -96,8 +96,8 @@ class _ReducedPlotter(object):
                             n_colors = self.n_samples
                             colors = sns.light_palette(color,
                                                        n_colors=n_colors)
-                            color_groupby = self.Series(
-                                colors, index=self.samples)
+                            color_groupby = pd.Series(colors,
+                                                      index=self.samples)
                         else:
                             error = 'Cannot interpret "hue_order" when "hue"' \
                                     ' is not specified [or len(hue_order) !=' \
@@ -144,8 +144,8 @@ class _ReducedPlotter(object):
                             n_colors = self.n_samples
                             colors = sns.light_palette(color,
                                                        n_colors=n_colors)
-                            color_groupby = self.Series(colors,
-                                                        index=self.samples)
+                            color_groupby = pd.Series(colors,
+                                                      index=self.samples)
                         else:
                             error = 'Cannot interpret "hue_order" when "hue"' \
                                     ' is not specified [or len(hue_order) !=' \

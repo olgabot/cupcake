@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.decomposition import PCA
 
-from cupcake.smush.base import _ReducedPlotter
+from cupcake.smush.base import SmushPlotterBase
 
 
 
-class PCAPlotter(_ReducedPlotter):
+class PCAPlotter(SmushPlotterBase):
 
     axis_label = 'Principal Component {:d}'
 

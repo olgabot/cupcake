@@ -8,7 +8,7 @@ import seaborn as sns
 from sklearn.decomposition import PCA
 
 
-class Test__ReducedPlotter(object):
+class TestSmushPlotterBase(object):
     nrow = 10
     ncol = 20
 
@@ -29,32 +29,32 @@ class Test__ReducedPlotter(object):
     color = 'DarkTeal'
 
     symbol_kws = dict(marker='o', marker_order=None, text=False,
-                          text_order=None, linewidth=1, linewidth_order=None,
-                          edgecolor='k', edgecolor_order=None)
+                      text_order=None, linewidth=1, linewidth_order=None,
+                      edgecolor='k', edgecolor_order=None)
     color_kws = dict(color=None, palette=None, hue=None, hue_order=None,
                      saturation=None)
 
     def test_establish_reducer_make_new(self):
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         pca_kws = {}
         n_components = 2
         reducer = PCA(n_components=n_components, **pca_kws)
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_reducer(PCA, n_components, {})
 
         assert isinstance(p.reducer, type(reducer))
         pdt.assert_dict_equal(p.reducer.get_params(), reducer.get_params())
 
     def test_establish_reducer_use_existing(self):
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         pca_kws = {}
         n_components = 2
         reducer = PCA(n_components=n_components, **pca_kws)
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_reducer(reducer)
 
         assert isinstance(p.reducer, type(reducer))
@@ -62,9 +62,9 @@ class Test__ReducedPlotter(object):
 
     # --- Test figuring out what to reduce --- #
     def test_establish_variables_matrix(self):
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.matrix)
 
         assert isinstance(p.high_dimensional_data, pd.DataFrame)
@@ -74,9 +74,9 @@ class Test__ReducedPlotter(object):
         assert p.value_label is None
 
     def test_establish_variables_dataframe_named_axes(self):
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
 
         pdt.assert_frame_equal(p.high_dimensional_data, self.data)
@@ -85,26 +85,26 @@ class Test__ReducedPlotter(object):
 
     @pytest.mark.xfail(reason='High dimensional data provided is too small')
     def test_establish_variables_too_few_axes(self):
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         matrix = self.vector.reshape(1, self.nrow * self.ncol)
         p.establish_variables(matrix)
 
     @pytest.mark.xfail(reason='High dimensional data provided has too many '
                               'axes')
     def test_establish_variables_too_many_axes(self):
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         matrix = self.vector.reshape((1, self.nrow, self.ncol))
         p.establish_variables(matrix)
 
     # --- Test internal series making function --- #
     def test__maybe_make_grouper_single_groupby(self):
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
 
         test_grouper = p._maybe_make_grouper('o', None, str)
@@ -113,9 +113,9 @@ class Test__ReducedPlotter(object):
         pdt.assert_series_equal(test_grouper, true_grouper)
 
     def test__maybe_make_grouper_multiple_groupbys(self):
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
 
         half = int(self.nrow/2.)
@@ -129,9 +129,9 @@ class Test__ReducedPlotter(object):
 
     # --- Test assigning plotting symbols --- #
     def test_establish_symbols_defaults(self):
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_symbols(**self.symbol_kws)
 
@@ -144,12 +144,12 @@ class Test__ReducedPlotter(object):
         assert not p.text
 
     def test_establish_symbols_text_true(self):
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         symbol_kws = self.symbol_kws.copy()
         symbol_kws['text'] = True
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_symbols(**symbol_kws)
 
@@ -159,12 +159,12 @@ class Test__ReducedPlotter(object):
         assert p.text
 
     def test_establish_symbols_text_series(self):
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         symbol_kws = self.symbol_kws.copy()
         symbol_kws['text'] = self.groupby
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_symbols(**symbol_kws)
 
@@ -176,13 +176,13 @@ class Test__ReducedPlotter(object):
         assert p.text
 
     def test_establish_symbols_text_series_ordered(self):
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         symbol_kws = self.symbol_kws.copy()
         symbol_kws['text'] = self.groupby
         symbol_kws['text_order'] = self.order
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_symbols(**symbol_kws)
 
@@ -192,7 +192,7 @@ class Test__ReducedPlotter(object):
         assert p.text
 
     def test_establish_symbols_text_series_not_str(self):
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         half = int(self.nrow/2.)
         text = pd.Series(([1] * half) + ([2] * half)).map(str)
@@ -200,7 +200,7 @@ class Test__ReducedPlotter(object):
         symbol_kws = self.symbol_kws.copy()
         symbol_kws['text'] = text
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_symbols(**symbol_kws)
 
@@ -212,9 +212,9 @@ class Test__ReducedPlotter(object):
     # --- Test assigning colors --- #
     def test_establish_colors_all_none(self):
         # Option 1. All parameters are set to default values
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**self.color_kws)
 
@@ -224,23 +224,23 @@ class Test__ReducedPlotter(object):
     @pytest.mark.xfail
     def test_establish_colors_hue_order(self):
         # Option 2. hue_order is specified but nothing else is
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         color_kws = self.color_kws.copy()
         color_kws['hue_order'] = self.order
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
 
     def test_establish_colors_hue(self):
         # Option 3. "hue" is specified but nothing else is
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         color_kws = self.color_kws.copy()
         color_kws['hue'] = self.groupby
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
 
@@ -249,13 +249,13 @@ class Test__ReducedPlotter(object):
 
     def establish_colors_hue_hue_order(self):
         # Option 4. Both "hue" and "hue_order" are specified
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         color_kws = self.color_kws.copy()
         color_kws['hue'] = self.groupby
         color_kws['hue_order'] = self.order
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
 
@@ -266,12 +266,12 @@ class Test__ReducedPlotter(object):
 
     def establish_colors_palette(self):
         # Option 5. "palette" is specified but nothing else is
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         color_kws = self.color_kws.copy()
         color_kws['palette'] = self.palette
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
 
@@ -280,7 +280,7 @@ class Test__ReducedPlotter(object):
 
     def establish_colors_palette_hue_order(self):
         # Option 6a. "palette" and "hue_order" are specified
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         # Reverse the index order
         hue_order = self.data.index[::-1]
@@ -289,7 +289,7 @@ class Test__ReducedPlotter(object):
         color_kws['palette'] = self.palette
         color_kws['hue_order'] = hue_order
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
 
@@ -300,7 +300,7 @@ class Test__ReducedPlotter(object):
     def establish_colors_palette_hue_order_incorrect_length(self):
         # Option 6b. "palette" and "hue_order" are specified, but hue_order
         # isn't correct length
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         # Reverse the index order
         hue_order = self.data.index[::-1]
@@ -310,19 +310,19 @@ class Test__ReducedPlotter(object):
         color_kws['palette'] = self.palette
         color_kws['hue_order'] = hue_order
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
 
     def establish_colors_palette_hue(self):
         # Option 7. "palette" and "hue" are specified
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         color_kws = self.color_kws.copy()
         color_kws['palette'] = self.palette
         color_kws['hue'] = self.groupby
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
 
@@ -331,14 +331,14 @@ class Test__ReducedPlotter(object):
 
     def establish_colors_palette_hue_hue_order(self):
         # Option 8. "palette", "hue", and "hue_order" are specified
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         color_kws = self.color_kws.copy()
         color_kws['palette'] = self.palette
         color_kws['hue'] = self.groupby
         color_kws['hue_order'] = self.order
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
 
@@ -347,12 +347,12 @@ class Test__ReducedPlotter(object):
 
     def establish_colors_color(self):
         # Option 9. "color" is specified
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         color_kws = self.color_kws.copy()
         color_kws['color'] = self.color
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
 
@@ -361,7 +361,7 @@ class Test__ReducedPlotter(object):
 
     def establish_colors_color_hue_order(self):
         # Option 10. "color" and "hue_order" are specified
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         # Reverse the index so hue_order is different from original order
         hue_order = self.data.index[::-1]
@@ -370,7 +370,7 @@ class Test__ReducedPlotter(object):
         color_kws['color'] = self.color
         color_kws['hue_order'] = hue_order
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
 
@@ -381,7 +381,7 @@ class Test__ReducedPlotter(object):
     def establish_colors_color_hue_order_incorrect_length(self):
         # Option 10. "color" and "hue_order" are specified, but "hue_order" is
         #  the incorrect length
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         # Reverse the index so hue_order is different from original order
         hue_order = self.data.index[::-1]
@@ -391,19 +391,19 @@ class Test__ReducedPlotter(object):
         color_kws['color'] = self.color
         color_kws['hue_order'] = hue_order
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
 
     def establish_colors_color_hue(self):
         # Option 11. "color" and "hue" are specified
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         color_kws = self.color_kws.copy()
         color_kws['color'] = self.color
         color_kws['hue'] = self.groupby
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
 
@@ -412,14 +412,14 @@ class Test__ReducedPlotter(object):
 
     def establish_colors_color_hue_hue_order(self):
         # Option 12. "color", "hue", and "hue_order" are specified
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         color_kws = self.color_kws.copy()
         color_kws['color'] = self.color
         color_kws['hue'] = self.groupby
         color_kws['hue_order'] = self.order
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
 
@@ -443,7 +443,7 @@ class Test__ReducedPlotter(object):
     @pytest.mark.xfail
     def establish_colors_color_palette(self, hue, hue_order):
         # Option 13-16. "color", and "palette" are specified but incompatible
-        from cupcake.smush.base import _ReducedPlotter
+        from cupcake.smush.base import SmushPlotterBase
 
         color_kws = self.color_kws.copy()
         color_kws['color'] = self.color
@@ -451,6 +451,6 @@ class Test__ReducedPlotter(object):
         color_kws['hue'] = hue
         color_kws['hue_order'] = hue_order
 
-        p = _ReducedPlotter()
+        p = SmushPlotterBase()
         p.establish_variables(self.data)
         p.establish_colors(**color_kws)
