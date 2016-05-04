@@ -186,7 +186,7 @@ class PlotterMixin(object):
                                                   str)
         self.text = text
 
-    def symbolplotter(self, xs, ys, symbol, linewidth, edgecolor, **kwargs):
+    def symbolplotter(self, xs, ys, ax, symbol, linewidth, edgecolor, **kwargs):
         """Plots either a matplotlib marker or a string at each data position
 
         Wraps plt.text and plt.plot
@@ -214,52 +214,22 @@ class PlotterMixin(object):
         if self.text:
             # Plot each (x, y) position as text
             for x, y in zip(xs, ys):
-                plt.text(x, y, symbol, **kwargs)
+                ax.text(x, y, symbol, **kwargs)
         else:
             # use plt.plot instead of plt.scatter for speed, since plotting all
             # the same marker shape and color and linestyle
-            plt.plot(xs, ys, 'o', marker=symbol, linewidth=linewidth,
-                     edgecolor=edgecolor, **kwargs)
+            ax.plot(xs, ys, 'o', marker=symbol, markeredgewidth=linewidth,
+                     markeredgecolor=edgecolor, **kwargs)
 
     def annotate_axes(self, ax):
         """Add descriptive labels to an Axes object."""
-        if self.orient == "v":
-            xlabel, ylabel = self.group_label, self.value_label
-        else:
-            xlabel, ylabel = self.value_label, self.group_label
+        xlabel, ylabel = self.xlabel, self.ylabel
 
         if xlabel is not None:
             ax.set_xlabel(xlabel)
         if ylabel is not None:
             ax.set_ylabel(ylabel)
 
-        if self.orient == "v":
-            ax.set_xticks(np.arange(len(self.plot_data)))
-            ax.set_xticklabels(self.group_names)
-        else:
-            ax.set_yticks(np.arange(len(self.plot_data)))
-            ax.set_yticklabels(self.group_names)
-
-        if self.orient == "v":
-            ax.xaxis.grid(False)
-            ax.set_xlim(-.5, len(self.reduced_data) - .5)
-        else:
-            ax.yaxis.grid(False)
-            ax.set_ylim(-.5, len(self.reduced_data) - .5)
-
-        if self.hue_names is not None:
-            leg = ax.legend(loc="best")
-            if self.hue_title is not None:
-                leg.set_title(self.hue_title)
-
-                # Set the title size a roundabout way to maintain
-                # compatability with matplotlib 1.1
-                try:
-                    title_size = mpl.rcParams["axes.labelsize"] * .85
-                except TypeError:  # labelsize is something like "large"
-                    title_size = mpl.rcParams["axes.labelsize"]
-                prop = mpl.font_manager.FontProperties(size=title_size)
-                leg._legend_title_box._text.set_font_properties(prop)
 
     def add_legend_data(self, ax, color, label):
         """Add a dummy patch object so we can get legend data."""
@@ -282,7 +252,7 @@ class PlotterMixin(object):
                         # and finally ... actually plot the data!
                         self.symbolplotter(ec_df.iloc[:, 0], ec_df.iloc[:, 1],
                                            symbol=symbol, color=color,
-                                           ax=ax, linewidth=lw, edgecolor=ec
+                                           ax=ax, linewidth=lw, edgecolor=ec,
                                            **plot_kws)
 
 
@@ -300,21 +270,26 @@ class ScatterPlotter(PlotterMixin):
 
     def establish_data(self, data, x, y):
         if isinstance(data, pd.DataFrame):
-            sample_label = data.index.name
-            feature_label = data.columns.name
+            xlabel = data.columns[x]
+            ylabel = data.columns[y]
         else:
             data = pd.DataFrame(data)
-            sample_label = None
-            feature_label = None
+            xlabel = None
+            ylabel = None
 
         self.data = data
         self.plot_data = self.data.iloc[:, [x, y]]
-        self.sample_label = sample_label
-        self.feature_label = feature_label
+        self.xlabel = xlabel
+        self.ylabel = ylabel
+
+        self.samples = self.plot_data.index
+        self.features = self.plot_data.columns
+        self.n_samples = len(self.samples)
+        self.n_features = len(self.features)
 
     def plot(self, ax, kwargs):
         self.draw_markers(ax, kwargs)
-        self.annotate_axes()
+        self.annotate_axes(ax)
 
 
 def scatterplot(data, x=0, y=1, color=None, hue=None, hue_order=None,
