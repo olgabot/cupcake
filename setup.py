@@ -23,23 +23,23 @@ test_requirements = [
 ]
 
 setup(
-    name='mlviz',
+    name='cupcake',
     version='0.1.0',
     description="Painlessly visualize results of machine leearning data",
     long_description=readme + '\n\n' + history,
     author="Olga Botvinnik",
     author_email='olga.botvinnik@gmail.com',
-    url='https://github.com/olgabot/mlviz',
+    url='https://github.com/olgabot/cupcake',
     packages=[
-        'mlviz',
+        'cupcake',
     ],
-    package_dir={'mlviz':
-                 'mlviz'},
+    package_dir={'cupcake':
+                 'cupcake'},
     include_package_data=True,
     install_requires=requirements,
     license="BSD",
     zip_safe=False,
-    keywords='mlviz',
+    keywords='cupcake',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
