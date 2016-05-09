@@ -316,29 +316,33 @@ class PlotterMixin(object):
                                              size=self.size.groupby,
                                              linewidth=self.linewidth.groupby,
                                              edgecolor=self.edgecolor.groupby,
-                                             alpha=self.alpha.groupby))
+                                             alpha=self.alpha.groupby),
+                                        index=self.samples)
         self.legend_data = self.legend_data.reindex(columns=self.legend_order)
 
     def draw_symbols(self, ax, plot_kws):
         """Plot each sample in the data"""
 
+        for labels, df in self.legend_data.groupby(self.legend_order):
+            color, symbol, linewidth, edgecolor, alpha, size = labels
+
         # Iterate over all the possible modifications of the points
         # TODO: add alpha and size
-        for i, (color_label, df1) in enumerate(self.plot_data.groupby(self.color.groupby)):
-            color = self.color.palette[i]
-            for j, (marker_label, df2) in enumerate(df1.groupby(self.symbol.groupby)):
-                symbol = self.symbol.palette[j]
-                for k, (lw_label, df3) in enumerate(df2.groupby(self.linewidth.groupby)):
-                    linewidth = self.linewidth.palette[k]
-                    for l, (ec_label, df4) in df3.groupby(self.edgecolor):
-                        edgecolor = self.edgecolor.palette[l]
-                        # and finally ... actually plot the data!
-                        for m
-                        self.symbolplotter(df4.iloc[:, 0], df4.iloc[:, 1],
-                                           symbol=symbol, color=color,
-                                           ax=ax, linewidth=linewidth,
-                                           edgecolor=edgecolor, **plot_kws)
-
+        # for i, (color_label, df1) in enumerate(self.plot_data.groupby(self.color.groupby)):
+        #     color = self.color.palette[i]
+        #     for j, (marker_label, df2) in enumerate(df1.groupby(self.symbol.groupby)):
+        #         symbol = self.symbol.palette[j]
+        #         for k, (lw_label, df3) in enumerate(df2.groupby(self.linewidth.groupby)):
+        #             linewidth = self.linewidth.palette[k]
+        #             for l, (ec_label, df4) in df3.groupby(self.edgecolor):
+        #                 edgecolor = self.edgecolor.palette[l]
+        #                 # and finally ... actually plot the data!
+        #                 for m
+        #                 self.symbolplotter(df4.iloc[:, 0], df4.iloc[:, 1],
+        #                                    symbol=symbol, color=color,
+        #                                    ax=ax, linewidth=linewidth,
+        #                                    edgecolor=edgecolor, **plot_kws)
+        #
 
 
 class ScatterPlotter(PlotterMixin):
