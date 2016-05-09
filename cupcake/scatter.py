@@ -1,7 +1,7 @@
 """
 Generic, configurable scatterplot
 """
-import itertools
+import collections
 import warnings
 
 import numpy as np
@@ -13,9 +13,9 @@ import seaborn as sns
 
 class PlottingAttribute(object):
 
-    __slots__ = 'groupby', 'title', 'palette'
+    __slots__ = 'groupby', 'title', 'palette', 'group_to_attribute'
 
-    def __init__(self, groupby, title, palette):
+    def __init__(self, groupby, title, palette, order):
         """An attribute that you want to visualize with a specific visual cue
 
         Parameters
@@ -30,6 +30,15 @@ class PlottingAttribute(object):
         self.groupby = groupby
         self.title = title
         self.palette = palette
+        if order is not None:
+            # there's more than one attribute
+            self.group_to_attribute = dict(zip(order, palette))
+        else:
+            # There's only one attribute
+            self.group_to_attribute = {None: palette[0]}
+
+    def __getitem__(self, item):
+        return self.group_to_attribute[item]
 
 
 class PlotterMixin(object):
@@ -123,7 +132,7 @@ class PlotterMixin(object):
         else:
             colors = sns.light_palette(current_palette[0],
                                        n_colors=n_colors)
-        self.color = PlottingAttribute(hue, color_title, colors)
+        self.color = PlottingAttribute(hue, color_title, colors, hue_order)
 
     def _maybe_make_grouper(self, attribute, palette_maker, order=None,
                             func=None, default=None):
@@ -160,7 +169,7 @@ class PlotterMixin(object):
         if func is None or func(attribute):
             # Use this single attribute for everything
             return PlottingAttribute(pd.Series(None, index=self.samples),
-                                     title, (attribute,))
+                                     title, (attribute,), order)
         else:
 
             try:
@@ -177,7 +186,7 @@ class PlotterMixin(object):
             attribute = pd.Categorical(attribute, categories=order,
                                        ordered=True)
             return PlottingAttribute(pd.Series(attribute, index=self.samples),
-                                     title, palette)
+                                     title, palette, order)
 
     def establish_symbols(self, marker, marker_order, text, text_order):
         """Figure out what symbol put on the axes for each data point"""
@@ -221,6 +230,9 @@ class PlotterMixin(object):
                                 symbols = filled_markers[:n_symbols]
                             else:
                                 symbols = self.filled_markers[:n_symbols]
+
+            symbol = PlottingAttribute(symbol, symbol_title, symbols,
+                                       marker_order)
         else:
             # Assume "text" is a mapping from row names (sample ids) of the
             # data to text labels
@@ -229,6 +241,8 @@ class PlotterMixin(object):
             symbol = pd.Series(pd.Categorical(text, categories=text_order,
                                               ordered=True),
                                index=self.samples)
+            symbol = PlottingAttribute(symbol, symbol_title, symbols,
+                                       text_order)
             if marker is not None:
                 warnings.warn('Overriding plotting symbol from "marker" with '
                               'values in "text"')
@@ -236,7 +250,7 @@ class PlotterMixin(object):
             # Turn text into a boolean
             text = True
 
-        self.symbol = PlottingAttribute(symbol, symbol_title, symbols)
+        self.symbol = symbol
 
         self.text = text
 
@@ -323,8 +337,16 @@ class PlotterMixin(object):
     def draw_symbols(self, ax, plot_kws):
         """Plot each sample in the data"""
 
+        plot_kws = {} if plot_kws is None else plot_kws
+
         for labels, df in self.legend_data.groupby(self.legend_order):
-            color, symbol, linewidth, edgecolor, alpha, size = labels
+
+            # Get the attributes in order, using the group label to get the
+            # attribute
+            for name, label in zip(self.legend_order, labels):
+                plot_kws[name] = getattr(self, name)[label]
+
+            self.symbolplotter(df.iloc[:, 0], df.iloc[:, 1], **plot_kws)
 
         # Iterate over all the possible modifications of the points
         # TODO: add alpha and size
