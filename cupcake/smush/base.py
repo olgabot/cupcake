@@ -14,8 +14,10 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from ..scatter import PlotterMixin
 
-class SmushPlotterBase(object):
+
+class SmushPlotterBase(PlotterMixin):
     """Generic object for plotting high-dimensional data on 2d space"""
 
     def establish_reducer(self, reducer, n_components=None, smusher_kws=None):
@@ -32,7 +34,7 @@ class SmushPlotterBase(object):
             # We're using a pre-existing, user-supplied reducer
             self.reducer = reducer
 
-    def establish_variables(self, data):
+    def establish_data(self, data):
         """Convert input specification into a common representation."""
 
         # Option 1a:
@@ -40,8 +42,8 @@ class SmushPlotterBase(object):
         # ------------------------------------
         if isinstance(data, pd.DataFrame):
             high_dimensional_data = data
-            group_label = data.index.name
-            value_label = data.columns.name
+            sample_label = data.index.name
+            feature_label = data.columns.name
 
         # Option 1b:
         # The input data is an array or list
@@ -61,14 +63,14 @@ class SmushPlotterBase(object):
                          "exactly 2 dimensions")
                 raise ValueError(error)
 
-            group_label = None
-            value_label = None
+            sample_label = None
+            feature_label = None
 
         # Assign object attributes
         # ------------------------
         self.high_dimensional_data = high_dimensional_data
-        self.group_label = group_label
-        self.value_label = value_label
+        self.sample_label = sample_label
+        self.feature_label = feature_label
 
         self.samples = self.high_dimensional_data.index
         self.features = self.high_dimensional_data.columns
@@ -197,14 +199,6 @@ class SmushPlotterBase(object):
                                        ordered=True)
             return pd.Series(attribute, index=self.samples)
 
-    def _color_grouper_from_palette(self, grouped, palette, hue_order):
-        color_tuples = [zip(df.index, [palette[i]] * df.shape[0])
-                        for i, (g, df) in enumerate(grouped)]
-
-        colors = dict(itertools.chain(*color_tuples))
-        color_groupby = self._maybe_make_grouper(colors, hue_order)
-        return color_groupby
-
     def establish_symbols(self, marker, marker_order, text, text_order,
                           linewidth, linewidth_order, edgecolor,
                           edgecolor_order):
@@ -282,9 +276,9 @@ class SmushPlotterBase(object):
     def annotate_axes(self, ax):
         """Add descriptive labels to an Axes object."""
         if self.orient == "v":
-            xlabel, ylabel = self.group_label, self.value_label
+            xlabel, ylabel = self.sample_label, self.feature_label
         else:
-            xlabel, ylabel = self.value_label, self.group_label
+            xlabel, ylabel = self.feature_label, self.sample_label
 
         if xlabel is not None:
             ax.set_xlabel(xlabel)
@@ -328,7 +322,7 @@ class SmushPlotterBase(object):
                              label=label)
         ax.add_patch(rect)
 
-    def draw_markers(self, ax, x=0, y=1, **kwargs):
+    def draw_symbols(self, ax, x=0, y=1, **kwargs):
         """Plot each sample in the data in the reduced space"""
 
         # Iterate over all the possible modifications of the points
@@ -380,7 +374,7 @@ _reducer_docs = dict(
     hue, marker : mapping (dict or pandas.Series)
         A dict or pandas.Series mapping the row names of ``data`` to a
         separate category to plot as separate colors (hue) or plotting
-        symbols (marker). See examples for interpretation.\
+        markers (marker). See examples for interpretation.\
         """),
 
     # From seaborn.categorical

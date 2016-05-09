@@ -3,3 +3,8 @@
 __author__ = 'Olga Botvinnik'
 __email__ = 'olga.botvinnik@gmail.com'
 __version__ = '0.1.0'
+
+from .scatter import scatterplot
+from .smush.plot import smushplot
+
+__all__ = ['scatterplot', 'smushplot']

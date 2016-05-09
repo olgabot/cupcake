@@ -11,106 +11,126 @@ import pandas as pd
 import seaborn as sns
 
 
+class PlottingAttribute(object):
+
+    __slots__ = 'groupby', 'title', 'palette'
+
+    def __init__(self, groupby, title, palette):
+        """An attribute that you want to visualize with a specific visual cue
+
+        Parameters
+        ----------
+        groupby : mappable
+            A series or dict or list to groupby on the rows of the data
+        title : str
+            Title of this part of the legend
+        palette : list-like
+            What to plot for each group
+        """
+        self.groupby = groupby
+        self.title = title
+        self.palette = palette
+
+
 class PlotterMixin(object):
 
     """
     Must be mixed with something that creates the ``self.plot_data`` attribute
+
+
+    Attributes
+    ----------
+
+    color :
+
+
+
     """
+    # Markers that can be filled, in a reasonable order so things that can be
+    # confused with each other (e.g. triangles pointing to the left or right) are
+    # not next to each other
+    filled_markers = (u'o', u'v', u's', u'*', u'h', u'<', u'H', u'x', u'8',
+                      u'>', u'D', u'd', u'^')
+    linewidth_min, linewidth_max = 0.1, 5
+
+    alpha_min, alpha_max = 0.1, 1
+
+    size_min, size_max = 3, 30
+
+    legend_order = 'color', 'symbol', 'linewidth', 'edgecolor', 'alpha', 'size'
 
     def establish_colors(self, color, hue, hue_order, palette):
         """Get a list of colors for the main component of the plots."""
         n_colors = None
 
-        if color is None:
-            # No color_groupby is specified
-            if palette is None:
-                # Auto-assigned palette
-                if hue is None:
-                    current_palette = sns.utils.get_color_cycle()
-                    color = current_palette[0]
-                    if hue_order is None:
-                        # Auto-assign one color_groupby to all samples from
-                        # current color cycle
-                        n_colors = 1
-                        color_groupby = self._maybe_make_grouper(color)
-                    else:
-                        if len(hue_order) == self.n_samples:
-                            n_colors = self.n_samples
-                            colors = sns.light_palette(color,
-                                                       n_colors=n_colors)
-                            color_groupby = pd.Series(colors,
-                                                      index=self.samples)
-                        else:
-                            error = 'Cannot interpret "hue_order" when "hue"' \
-                                    ' is not specified [or len(hue_order) !=' \
-                                    ' len(data.index)]'
-                            raise ValueError(error)
+        current_palette = sns.utils.get_color_cycle()
 
+
+        color_labels = None
+        color_title = None
+
+
+        if color is not None and palette is not None:
+            error = 'Cannot interpret colors to plot when both "color" and ' \
+                    '"palette" are specified'
+            raise ValueError(error)
+
+
+        # Force "hue" to be a mappable
+        if hue is not None:
+            try:
+                # Check if "hue" is a column in the data
+                color_title = str(hue)
+                hue = self.data[hue]
+            except (ValueError, KeyError):
+                # Hue is already a mappable
+                if isinstance(hue, pd.Series):
+                    color_title = hue.name
                 else:
-                    # Use the hue grouping, possibly with an order (handled
-                    # within _maybe_make_grouper)
-                    color_groupby = self._maybe_make_grouper(hue,
-                                                             order=hue_order,
-                                                             dtype=str)
-                    n_colors = len(self.plot_data.groupby(
-                        color_groupby).size())
-            else:
-                # User-defined palette
-                if hue is None:
-                    # Assign every sample a different color_groupby from
-                    # palette
-                    n_colors = self.n_samples
-                    colors = sns.color_palette(palette, n_colors=n_colors)
+                    color_title = None
 
-                    index = self.samples if hue_order is None else hue_order
-                    color_groupby = pd.Series(colors, index=index)
-                else:
-                    # Assign every group a different color_groupby from palette
-
-                    grouped = self.plot_data.groupby(hue)
-                    size = grouped.size()
-                    n_colors = size.shape[0]
-                    palette = sns.color_palette(palette, n_colors=n_colors)
-
-                    color_groupby = self._color_grouper_from_palette(
-                        grouped, palette, hue_order)
+            # This will give the proper number of categories even if there are
+            #  more categories in "hue_order" than represented in "hue"
+            hue_order = sns.utils.categorical_order(hue, hue_order)
+            color_labels = hue_order
+            hue = pd.Categorical(hue, hue_order)
+            n_colors = len(self.plot_data.groupby(hue))
         else:
-            # Single color_groupby is provided
-            if palette is None:
-                if hue is None:
-                    if hue_order is None:
-                        color_groupby = self._maybe_make_grouper(color)
-                        n_colors = 1
-                    else:
-                        if len(hue_order) == self.n_samples:
-                            n_colors = self.n_samples
-                            colors = sns.light_palette(color,
-                                                       n_colors=n_colors)
-                            color_groupby = pd.Series(colors,
-                                                      index=self.samples)
-                        else:
-                            error = 'Cannot interpret "hue_order" when "hue"' \
-                                    ' is not specified [or len(hue_order) !=' \
-                                    ' len(data.index)]'
-                            raise ValueError(error)
+            if hue_order is not None:
+
+                # Check if "hue_order" specifies rows in the data
+                samples_to_plot = self.plot_data.index.intersection(hue_order)
+                n_colors = len(samples_to_plot)
+                if n_colors > 0:
+                    # Different color for every sample (row name)
+                    hue = pd.Series(self.plot_data.index,
+                                    index=self.plot_data.index)
+
                 else:
-                    grouped = self.plot_data.groupby(hue)
-                    size = grouped.size()
-                    self.n_colors = len(size)
-                    palette = sns.light_palette(color, n_colors=n_colors)
-
-                    color_groupby = self._color_grouper_from_palette(
-                        grouped, palette, hue_order)
+                    error = "When 'hue=None' and 'hue_order' is specified, " \
+                            "'hue_order' must overlap with the data row " \
+                            "names (index)"
+                    raise ValueError(error)
             else:
-                error = 'Cannot specify both "palette" and "color"'
-                raise ValueError(error)
+                # Same color for everything
+                hue = pd.Series('hue', index=self.plot_data.index)
+                n_colors = 1
 
-        # Assign object attributes
-        self.n_colors = n_colors
-        self.color = color_groupby
+        if palette is not None:
+            colors = sns.color_palette(palette, n_colors=n_colors)
+        elif color is not None:
+            colors = sns.light_palette(color, n_colors=n_colors)
+        else:
+            colors = sns.light_palette(current_palette[0],
+                                       n_colors=n_colors)
+        self.color = PlottingAttribute(hue, color_title, colors)
 
-    def _maybe_make_grouper(self, attribute, order=None, dtype=None):
+    def _maybe_make_grouper(self, attribute, palette_maker, order=None,
+                            func=None, default=None):
         """Create a Series from a single attribute, else make categorical
+
+        Checks if the attribute is in the data provided, or is an external
+        mapper
 
         Parameters
         ----------
@@ -118,54 +138,94 @@ class PlotterMixin(object):
             Either a single item to create into a series, or a series mapping
             each sample to an attribute (e.g. the plotting symbol 'o' or
             linewidth 1)
+        palette_maker : function
+            Function which takes an integer and creates the appropriate
+            palette for the attribute, e.g. shades of grey for edgecolor or
+            linearly spaced sizes
         order : list
             The order to create the attributes into
-        dtype : type
-            If "attribute" is of this type (as in, it is a single item), then
-            create a single series. This is for consistency so that every
-            possible plotting attribute can be used in a "groupby"
+        func : function
+            A function which returns true if the attribute is a single valid
+            instance, e.g. "black" for color or 0.1 for linewidth. Otherwise,
+            we assume that "attribute" is a mappable
 
         Returns
         -------
         grouper : pandas.Series
             A mapping of the high dimensional data samples to the attribute
         """
-        if dtype is None or isinstance(attribute, dtype):
+
+        title = None
+
+        if func is None or func(attribute):
             # Use this single attribute for everything
-            return pd.Series([attribute]*self.n_samples, index=self.samples)
+            return PlottingAttribute(pd.Series(None, index=self.samples),
+                                     title, (attribute,))
         else:
+
+            try:
+                # Check if this is a column in the data
+                attribute = self.data[attribute]
+            except (ValueError, KeyError):
+                pass
+
+            if isinstance(attribute, pd.Series):
+                title = attribute.name
             order = sns.utils.categorical_order(attribute, order)
+
+            palette = palette_maker(len(order))
             attribute = pd.Categorical(attribute, categories=order,
                                        ordered=True)
-            return pd.Series(attribute, index=self.samples)
+            return PlottingAttribute(pd.Series(attribute, index=self.samples),
+                                     title, palette)
 
-    def _color_grouper_from_palette(self, grouped, palette, hue_order):
-        color_tuples = [zip(df.index, [palette[i]] * df.shape[0])
-                        for i, (g, df) in enumerate(grouped)]
+    def establish_symbols(self, marker, marker_order, text, text_order):
+        """Figure out what symbol put on the axes for each data point"""
 
-        colors = dict(itertools.chain(*color_tuples))
-        color_groupby = self._maybe_make_grouper(colors, hue_order)
-        return color_groupby
+        symbol_title = None
 
-    def establish_symbols(self, marker, marker_order, text, text_order,
-                          linewidth, linewidth_order, edgecolor,
-                          edgecolor_order):
-        """Figure out what to put on the axes for each sample in the data"""
         if isinstance(text, bool):
             # Option 1: Text is a boolean
             if text:
                 # 1a: text=True, so use the sample names of data as the
                 # plotting symbol
-                symbol = pd.Series(
-                    map(str, self.samples), index=self.samples)
+                symbol_title = 'Samples'
+                symbols = [str(x) for x in self.samples]
+                symbol = pd.Series(self.samples, index=self.samples)
             else:
                 # 1b: text=False, so use the specified marker for each sample
                 symbol = self._maybe_make_grouper(marker, marker_order, str)
-
+                if marker is not None:
+                    try:
+                        symbol_title = marker
+                        symbol = self.data[marker]
+                        symbols = sns.categorical_order(symbol, marker_order)
+                    except (ValueError, KeyError):
+                        # Marker is a single marker, or already a groupable
+                        if marker in self.filled_markers:
+                            # Single marker so make a tuple so it's indexable
+                            symbols = (marker,)
+                        else:
+                            # already a groupable object
+                            if isinstance(marker, pd.Series):
+                                symbol_title = marker.name
+                            n_symbols = len(self.plot_data.groupby(symbol))
+                            if n_symbols > len(self.filled_markers):
+                                # If there's too many categories, then
+                                # auto-expand the existing list of filled
+                                # markers
+                                multiplier = np.ceil(
+                                    n_symbols/float(len(self.filled_markers)))
+                                filled_markers = list(self.filled_markers) \
+                                                 * multiplier
+                                symbols = filled_markers[:n_symbols]
+                            else:
+                                symbols = self.filled_markers[:n_symbols]
         else:
             # Assume "text" is a mapping from row names (sample ids) of the
             # data to text labels
             text_order = sns.utils.categorical_order(text, text_order)
+            symbols = text_order
             symbol = pd.Series(pd.Categorical(text, categories=text_order,
                                               ordered=True),
                                index=self.samples)
@@ -176,15 +236,35 @@ class PlotterMixin(object):
             # Turn text into a boolean
             text = True
 
-        self.symbol = symbol
+        self.symbol = PlottingAttribute(symbol, symbol_title, symbols)
 
-        # Set these even if text=True because they won't be used when plotting
-        # the text anyways
-        self.linewidth = self._maybe_make_grouper(linewidth, linewidth_order,
-                                                  (int, float))
-        self.edgecolor = self._maybe_make_grouper(edgecolor, edgecolor_order,
-                                                  str)
         self.text = text
+
+    def establish_symbol_attributes(self,linewidth, linewidth_order, edgecolor,
+                                    edgecolor_order, alpha, alpha_order, size,
+                                    size_order):
+        self.edgecolor = self._maybe_make_grouper(
+            edgecolor, self._edgecolor_palette, edgecolor_order,
+            mpl.colors.is_color_like)
+        self.linewidth = self._maybe_make_grouper(
+            linewidth, self._linewidth_palette, linewidth_order, np.isfinite)
+        self.alpha = self._maybe_make_grouper(
+            alpha, self._alpha_palette, alpha_order, np.isfinite)
+        self.size = self._maybe_make_grouper(
+            size, self._size_palette, size_order, np.isfinite)
+
+    @staticmethod
+    def _edgecolor_palette(self, n_groups):
+        return sns.color_palette('Greys', n_colors=n_groups)
+
+    def _linewidth_palette(self, n_groups):
+        return np.linspace(self.linewidth_min, self.linewidth_max, n_groups)
+
+    def _alpha_palette(self, n_groups):
+        return np.linspace(self.alpha_min, self.alpha_max, n_groups)
+
+    def _size_palette(self, n_groups):
+        return np.linspace(self.size_min, self.size_max, n_groups)
 
     def symbolplotter(self, xs, ys, ax, symbol, linewidth, edgecolor, **kwargs):
         """Plots either a matplotlib marker or a string at each data position
@@ -212,6 +292,8 @@ class PlotterMixin(object):
             return
 
         if self.text:
+            # Add dummy plot to make the axes in the right window
+            ax.plot(xs, ys, color=None)
             # Plot each (x, y) position as text
             for x, y in zip(xs, ys):
                 ax.text(x, y, symbol, **kwargs)
@@ -223,37 +305,39 @@ class PlotterMixin(object):
 
     def annotate_axes(self, ax):
         """Add descriptive labels to an Axes object."""
-        xlabel, ylabel = self.xlabel, self.ylabel
+        if self.xlabel is not None:
+            ax.set_xlabel(self.xlabel)
+        if self.ylabel is not None:
+            ax.set_ylabel(self.ylabel)
 
-        if xlabel is not None:
-            ax.set_xlabel(xlabel)
-        if ylabel is not None:
-            ax.set_ylabel(ylabel)
+    def establish_legend_data(self):
+        self.legend_data = pd.DataFrame(dict(color=self.color.groupby,
+                                             symbol=self.symbol.groupby,
+                                             size=self.size.groupby,
+                                             linewidth=self.linewidth.groupby,
+                                             edgecolor=self.edgecolor.groupby,
+                                             alpha=self.alpha.groupby))
+        self.legend_data = self.legend_data.reindex(columns=self.legend_order)
 
-
-    def add_legend_data(self, ax, color, label):
-        """Add a dummy patch object so we can get legend data."""
-        rect = plt.Rectangle([0, 0], 0, 0,
-                             linewidth=self.linewidth / 2,
-                             edgecolor=self.gray,
-                             facecolor=color,
-                             label=label)
-        ax.add_patch(rect)
-
-    def draw_markers(self, ax, plot_kws):
-        """Plot each sample in the data in the reduced space"""
+    def draw_symbols(self, ax, plot_kws):
+        """Plot each sample in the data"""
 
         # Iterate over all the possible modifications of the points
         # TODO: add alpha and size
-        for color, color_df in self.plot_data.groupby(self.color):
-            for symbol, symbol_df in color_df.groupby(self.symbol):
-                for lw, lw_df in symbol_df.groupby(self.linewidth):
-                    for ec, ec_df in lw_df.groupby(self.edgecolor):
+        for i, (color_label, df1) in enumerate(self.plot_data.groupby(self.color.groupby)):
+            color = self.color.palette[i]
+            for j, (marker_label, df2) in enumerate(df1.groupby(self.symbol.groupby)):
+                symbol = self.symbol.palette[j]
+                for k, (lw_label, df3) in enumerate(df2.groupby(self.linewidth.groupby)):
+                    linewidth = self.linewidth.palette[k]
+                    for l, (ec_label, df4) in df3.groupby(self.edgecolor):
+                        edgecolor = self.edgecolor.palette[l]
                         # and finally ... actually plot the data!
-                        self.symbolplotter(ec_df.iloc[:, 0], ec_df.iloc[:, 1],
+                        for m
+                        self.symbolplotter(df4.iloc[:, 0], df4.iloc[:, 1],
                                            symbol=symbol, color=color,
-                                           ax=ax, linewidth=lw, edgecolor=ec,
-                                           **plot_kws)
+                                           ax=ax, linewidth=linewidth,
+                                           edgecolor=edgecolor, **plot_kws)
 
 
 
@@ -261,12 +345,15 @@ class ScatterPlotter(PlotterMixin):
 
     def __init__(self, data, x, y, color, hue, hue_order, palette, marker,
                  marker_order, text, text_order, linewidth, linewidth_order,
-                 edgecolor, edgecolor_order):
+                 edgecolor, edgecolor_order, alpha, alpha_order, size,
+                 size_order):
         self.establish_data(data, x, y)
-        self.establish_symbols(marker, marker_order, text, text_order,
-                               linewidth, linewidth_order, edgecolor,
-                               edgecolor_order)
+        self.establish_symbols(marker, marker_order, text, text_order)
+        self.establish_symbol_attributes(linewidth, linewidth_order, edgecolor,
+            edgecolor_order, alpha, alpha_order, size, size_order)
         self.establish_colors(color, hue, hue_order, palette)
+        self.establish_legend_data()
+        # import pdb; pdb.set_trace()
 
     def establish_data(self, data, x, y):
         if isinstance(data, pd.DataFrame):
@@ -288,18 +375,20 @@ class ScatterPlotter(PlotterMixin):
         self.n_features = len(self.features)
 
     def plot(self, ax, kwargs):
-        self.draw_markers(ax, kwargs)
+        self.draw_symbols(ax, kwargs)
         self.annotate_axes(ax)
 
 
 def scatterplot(data, x=0, y=1, color=None, hue=None, hue_order=None,
                 palette=None, marker='o', marker_order=None, text=False,
                 text_order=None, linewidth=1, linewidth_order=None,
-                edgecolor='k', edgecolor_order=None, ax=None, **kwargs):
+                edgecolor='k', edgecolor_order=None, alpha=1, alpha_order=None,
+                size=7, size_order=None, ax=None, **kwargs):
 
     plotter = ScatterPlotter(data, x, y, color, hue, hue_order, palette,
                              marker, marker_order, text, text_order, linewidth,
-                             linewidth_order, edgecolor, edgecolor_order)
+                             linewidth_order, edgecolor, edgecolor_order,
+                             alpha, alpha_order, size, size_order)
     if ax is None:
         ax = plt.gca()
 
